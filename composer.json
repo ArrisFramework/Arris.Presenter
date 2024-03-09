@@ -6,8 +6,17 @@
     "authors": [
         {
             "name": "Karel Wintersky",
-            "email": "wombat@fontanka.ru"
+            "email": "karel.wintersky@yandex.ru"
         }
     ],
-    "require": {}
+    "require": {
+        "php": "^7.4 || 8.*",
+        "ext-json": "*",
+        "smarty/smarty": "^4.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Arris\\Template\\": "src/"
+        }
+    }
 }
