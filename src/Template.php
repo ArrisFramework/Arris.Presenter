@@ -14,8 +14,6 @@ class Template implements TemplateInterface
      */
     private ?Smarty $smarty = null;
 
-    private bool $is_smarty_instantiated = false;
-
     /**
      * Smarty Options for deferred init
      *
@@ -61,20 +59,20 @@ class Template implements TemplateInterface
      */
     private string $raw_content = '';
 
-    private Headers $current_headers;
+    public Headers $headers;
 
     public function __construct($request = [], $smarty_options = [], $template_options = [], $logger = null)
     {
         $this->REQUEST = $request;
         $this->smarty_options = new Config($smarty_options);
         $this->template_options = new Config($template_options);
-        $this->current_headers = new Headers();
+        $this->headers = new Headers();
 
-        if (array_key_exists('file', $template_options)) {
+        if (\array_key_exists('file', $template_options)) {
             $this->setTemplate($template_options['file']);
         }
 
-        if (array_key_exists('source', $template_options)) {
+        if (\array_key_exists('source', $template_options)) {
             $this->setTemplate($template_options['source']);
         }
     }
@@ -98,6 +96,9 @@ class Template implements TemplateInterface
         return $this;
     }
 
+    /**
+     * @throws SmartyException
+     */
     public function registerPlugin(int $type, string $name, $callback, $cacheable = true, $cache_attr = null):Template
     {
         if (!is_callable($callback)) {
@@ -133,7 +134,6 @@ class Template implements TemplateInterface
     public function initSmarty()
     {
         $this->smarty = new Smarty();
-        $this->is_smarty_instantiated = true;
 
         if ($this->smarty_options->has('setTemplateDir')) {
             $this->smarty->setTemplateDir( $this->smarty_options->get('setTemplateDir'));
@@ -199,6 +199,10 @@ class Template implements TemplateInterface
      */
     public function makeRedirect(string $uri = null, int $code = null, bool $replace_headers = true)
     {
+        if (false === $this->isRedirect()) {
+            return false;
+        }
+
         $_uri
             = is_null($uri)
             ? (
@@ -207,6 +211,7 @@ class Template implements TemplateInterface
                     : null
             )
             : $uri;
+
         $_code
             = is_null($code)
             ? (
@@ -224,15 +229,20 @@ class Template implements TemplateInterface
             $_code = 200;
         }
 
-        if ((strpos( $_uri, "http://" ) !== false || strpos( $_uri, "https://" ) !== false)) {
-            header("Location: {$_uri}", $replace_headers, $_code);
-            exit(0);
+        if (
+            strpos( $_uri, "http://" ) !== false ||
+            strpos( $_uri, "https://" ) !== false
+        ) {
+            $location = $_uri;
+        } else {
+            $scheme = Helper::is_ssl() ? "https://" : "http://";
+            $scheme = str_replace('://', '', $scheme);
+            $location = "{$scheme}://{$_SERVER['HTTP_HOST']}{$_uri}";
         }
 
-        $scheme = Helper::is_ssl() ? "https://" : "http://";
-        $scheme = str_replace('://', '', $scheme);
+        $this->headers->add(Headers::LOCATION, $location, $replace_headers, $_code);
+        $this->headers->send();
 
-        header("Location: {$scheme}://{$_SERVER['HTTP_HOST']}{$_uri}", $replace_headers, $_code);
         exit(0);
     }
 
@@ -320,7 +330,7 @@ class Template implements TemplateInterface
     /**
      * Ключевой метод.
      * Он всегда вызывается как `echo $template->render()`, но если вернет null - ничего не напечатает
-     * После него всегда вызывается makeredirect
+     * После него всегда вызывается makeRedirect
      *
      * Хедеры мы отправляем всегда кроме случая редиректа
      *
@@ -328,56 +338,67 @@ class Template implements TemplateInterface
      *
      * Для 404 в случае API возвращается всегда 200, но об отсутствии метода отвечает уже обработчик API
      *
+     * @param bool $send_header
+     * @param bool $clean
      * @return string|null
-     * @throws \JsonException
      * @throws SmartyException
+     * @throws \JsonException
      */
-    public function render($send_header = true, $clean = false): ?string
+    public function render(bool $send_header = true, bool $clean = false): ?string
     {
-        $content = null;
+        $content = '';
+        $need_render = false;
 
         switch ($this->render_type) {
             case self::CONTENT_TYPE_REDIRECT: {
-                $send_header = false;
+                $this->headers->send = false;
                 break;
             }
             case self::CONTENT_TYPE_JSON: {
                 $content = \json_encode($this->template_vars, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_NUMERIC_CHECK | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
+                $this->addHeader(Headers::CONTENT_TYPE,'application/json; charset=utf-8');
                 break;
             }
             case self::CONTENT_TYPE_RAW: {
                 $content = $this->raw_content;
+                $this->addHeader(Headers::CONTENT_TYPE, 'text/html; charset=utf-8');
                 break;
             }
             case self::CONTENT_TYPE_JS: {
                 $content = $this->raw_content;
-                $send_header = true;
+                $this->addHeader(Headers::CONTENT_TYPE, 'text/javascript;charset=utf-8');
+                break;
+            }
+            case self::CONTENT_TYPE_RSS: {
+                $this->addHeader(Headers::CONTENT_TYPE, 'Content-type: application/xml');
+                $need_render = true;
+                break;
+            }
+            case self::CONTENT_TYPE_HTML: {
+                $this->addHeader(Headers::CONTENT_TYPE, 'text/html; charset=utf-8');
+                $need_render = true;
                 break;
             }
             case self::CONTENT_TYPE_404: {
-                $send_header = true;
-                // no break - далее ветка рендера остального контента
+                $this->addHeader(Headers::_, Headers::HTTP_CODES[404]);
+                $need_render = true;
+                break;
+            }
+            case self::CONTENT_TYPE_500: {
+                $this->addHeader(Headers::_, Headers::HTTP_CODES[500]);
+                $need_render = true;
+                break;
             }
             default: {
-                if (! ($this->smarty instanceof Smarty)) {
-                    $this->initSmarty();
-                }
 
-                foreach ($this->template_vars as $key => $value) {
-                    $this->smarty->assign($key, $value);
-                }
-
-                $content
-                    = empty($this->template_file)
-                    ? ''
-                    : $this->smarty->fetch($this->template_file);
-
-            } // default
+            }
         } // switch
 
-        if ($send_header) {
-            $this->sendHeaders( $this->render_type );
+        if ($need_render) {
+            $content = $this->renderTemplate();
         }
+
+        $this->headers->send();
 
         if ($clean) {
             $this->clean();
@@ -386,21 +407,57 @@ class Template implements TemplateInterface
         return $content;
     }
 
-    public function sendHeaders(?string $render_type = null, $custom_headers = []):void
+    /**
+     * Render Smarty Template
+     *
+     * @return string
+     * @throws SmartyException
+     */
+    private function renderTemplate():string
     {
-        $headers = [];
-
-        if (!empty($render_type)) {
-            $headers = array_key_exists($render_type, self::HEADERS)
-                ? self::HEADERS[$render_type]
-                : self::HEADERS['_'];
+        if (! ($this->smarty instanceof Smarty)) {
+            $this->initSmarty();
         }
 
-        foreach ($headers as $header) {
-            $_header = $header[0] . ' ' . $header[1];
-            $_replace = $_header[2] ?: true;
-            $_code = $header[3] ?: 0;
-            header($header);
+        foreach ($this->template_vars as $key => $value) {
+            $this->smarty->assign($key, $value);
         }
+
+        $content
+            = empty($this->template_file)
+            ? ''
+            : $this->smarty->fetch($this->template_file);
+
+        return $content;
+    }
+
+    public function setRedirect(string $uri = '/', int $code = 200): void
+    {
+        $this->redirect_options = [
+            '_'     =>  true,
+            'uri'   =>  $uri,
+            'code'  =>  $code
+        ];
+
+        $this->setRenderType( self::CONTENT_TYPE_REDIRECT );
+    }
+
+    /**
+     * @param string $header_name
+     * @param string $header_content
+     * @param bool $header_replace
+     * @param int $header_code
+     * @return $this
+     */
+    public function addHeader(string $header_name = '', string $header_content = 'text/html; charset=utf-8', bool $header_replace = true, int $header_code = 0):Template
+    {
+        $this->headers->add($header_name, $header_content, $header_replace, $header_code);
+        return $this;
+    }
+
+    public function setHttpResponse($code):Template
+    {
+        $this->headers->add(Headers::_, Headers::HTTP_CODES[$code]);
+        return $this;
     }
 }

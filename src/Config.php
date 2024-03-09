@@ -2,10 +2,10 @@
 
 namespace Arris\Template;
 
-use ArrayIterator;
-use Traversable;
+use ArrayIterator, ArrayAccess, Countable, IteratorAggregate, JsonSerializable;
 
-class Config implements \ArrayAccess, \Countable, \IteratorAggregate, \JsonSerializable
+#[\AllowDynamicProperties]
+class Config implements ArrayAccess, Countable, IteratorAggregate, JsonSerializable
 {
     protected $options = [];
 
@@ -85,7 +85,7 @@ class Config implements \ArrayAccess, \Countable, \IteratorAggregate, \JsonSeria
      */
     protected function getArrayItems($items)
     {
-        if (is_array($items)) {
+        if (\is_array($items)) {
             return $items;
         }
 
@@ -104,12 +104,12 @@ class Config implements \ArrayAccess, \Countable, \IteratorAggregate, \JsonSeria
      */
     public function has($offset): bool
     {
-        return array_key_exists($offset, $this->options);
+        return \array_key_exists($offset, $this->options);
     }
 
     protected function exists($array, $key): bool
     {
-        return array_key_exists($key, $array);
+        return \array_key_exists($key, $array);
     }
 
     /**
@@ -121,7 +121,7 @@ class Config implements \ArrayAccess, \Countable, \IteratorAggregate, \JsonSeria
      */
     public function get($key = null, $default = null)
     {
-        if (is_null($key)) {
+        if (\is_null($key)) {
             return $this->all();
         }
 
@@ -141,7 +141,7 @@ class Config implements \ArrayAccess, \Countable, \IteratorAggregate, \JsonSeria
      */
     public function set($keys, $value = null)
     {
-        if (is_array($keys)) {
+        if (\is_array($keys)) {
             foreach ($keys as $k => $v) {
                 $this->set($k, $v);
             }
