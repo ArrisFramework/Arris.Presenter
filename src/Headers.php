@@ -4,48 +4,119 @@ namespace Arris\Template;
 
 use http\Header;
 
-final class Headers
+/**
+ * from: https://packagist.org/packages/lmc/http-constants
+ */
+final class Headers implements HeadersInterface
 {
     public const HTTP_CODES = array(
-        100 => "HTTP/1.1 100 Continue",
-        101 => "HTTP/1.1 101 Switching Protocols",
-        200 => "HTTP/1.1 200 OK",
-        201 => "HTTP/1.1 201 Created",
-        202 => "HTTP/1.1 202 Accepted",
-        203 => "HTTP/1.1 203 Non-Authoritative Information",
-        204 => "HTTP/1.1 204 No Content",
-        205 => "HTTP/1.1 205 Reset Content",
-        206 => "HTTP/1.1 206 Partial Content",
-        300 => "HTTP/1.1 300 Multiple Choices",
-        301 => "HTTP/1.1 301 Moved Permanently",
-        302 => "HTTP/1.1 302 Found",
-        303 => "HTTP/1.1 303 See Other",
-        304 => "HTTP/1.1 304 Not Modified",
-        305 => "HTTP/1.1 305 Use Proxy",
-        307 => "HTTP/1.1 307 Temporary Redirect",
-        400 => "HTTP/1.1 400 Bad Request",
-        401 => "HTTP/1.1 401 Unauthorized",
-        402 => "HTTP/1.1 402 Payment Required",
-        403 => "HTTP/1.1 403 Forbidden",
-        404 => "HTTP/1.1 404 Not Found",
-        405 => "HTTP/1.1 405 Method Not Allowed",
-        406 => "HTTP/1.1 406 Not Acceptable",
-        407 => "HTTP/1.1 407 Proxy Authentication Required",
-        408 => "HTTP/1.1 408 Request Time-out",
-        409 => "HTTP/1.1 409 Conflict",
-        410 => "HTTP/1.1 410 Gone",
-        411 => "HTTP/1.1 411 Length Required",
-        412 => "HTTP/1.1 412 Precondition Failed",
-        413 => "HTTP/1.1 413 Request Entity Too Large",
-        414 => "HTTP/1.1 414 Request-URI Too Large",
-        415 => "HTTP/1.1 415 Unsupported Media Type",
-        416 => "HTTP/1.1 416 Requested range not satisfiable",
-        417 => "HTTP/1.1 417 Expectation Failed",
-        500 => "HTTP/1.1 500 Internal Server Error",
-        501 => "HTTP/1.1 501 Not Implemented",
-        502 => "HTTP/1.1 502 Bad Gateway",
-        503 => "HTTP/1.1 503 Service Unavailable",
-        504 => "HTTP/1.1 504 Gateway Time-out"
+        100 => "Continue",
+        101 => "Switching Protocols",
+        102 => "Processing",
+        200 => "OK",
+        201 => "Created",
+        202 => "Accepted",
+        203 => "Non-Authoritative Information",
+        204 => "No Content",
+        205 => "Reset Content",
+        206 => "Partial Content",
+        207 => "Multi-Status",
+        300 => "Multiple Choices",
+        301 => "Moved Permanently",
+        302 => "Found",
+        303 => "See Other",
+        304 => "Not Modified",
+        305 => "Use Proxy",
+        306 => "(Unused)",
+        307 => "Temporary Redirect",
+        308 => "Permanent Redirect",
+        400 => "Bad Request",
+        401 => "Unauthorized",
+        402 => "Payment Required",
+        403 => "Forbidden",
+        404 => "Not Found",
+        405 => "Method Not Allowed",
+        406 => "Not Acceptable",
+        407 => "Proxy Authentication Required",
+        408 => "Request Timeout",
+        409 => "Conflict",
+        410 => "Gone",
+        411 => "Length Required",
+        412 => "Precondition Failed",
+        413 => "Request Entity Too Large",
+        414 => "Request-URI Too Long",
+        415 => "Unsupported Media Type",
+        416 => "Requested Range Not Satisfiable",
+        417 => "Expectation Failed",
+        418 => "I'm a teapot",
+        419 => "Authentication Timeout",
+        420 => "Enhance Your Calm",
+        422 => "Unprocessable Entity",
+        423 => "Locked",
+        424 => "Failed Dependency",
+        424 => "Method Failure",
+        425 => "Unordered Collection",
+        426 => "Upgrade Required",
+        428 => "Precondition Required",
+        429 => "Too Many Requests",
+        431 => "Request Header Fields Too Large",
+        444 => "No Response",
+        449 => "Retry With",
+        450 => "Blocked by Windows Parental Controls",
+        451 => "Unavailable For Legal Reasons",
+        494 => "Request Header Too Large",
+        495 => "Cert Error",
+        496 => "No Cert",
+        497 => "HTTP to HTTPS",
+        499 => "Client Closed Request",
+        500 => "Internal Server Error",
+        501 => "Not Implemented",
+        502 => "Bad Gateway",
+        503 => "Service Unavailable",
+        504 => "Gateway Timeout",
+        505 => "HTTP Version Not Supported",
+        506 => "Variant Also Negotiates",
+        507 => "Insufficient Storage",
+        508 => "Loop Detected",
+        509 => "Bandwidth Limit Exceeded",
+        510 => "Not Extended",
+        511 => "Network Authentication Required",
+        598 => "Network read timeout error",
+        599 => "Network connect timeout error",
+        204 => "204 No Content",
+        205 => "205 Reset Content",
+        206 => "206 Partial Content",
+        300 => "300 Multiple Choices",
+        301 => "301 Moved Permanently",
+        302 => "302 Found",
+        303 => "303 See Other",
+        304 => "304 Not Modified",
+        305 => "305 Use Proxy",
+        307 => "307 Temporary Redirect",
+        400 => "400 Bad Request",
+        401 => "401 Unauthorized",
+        402 => "402 Payment Required",
+        403 => "403 Forbidden",
+        404 => "404 Not Found",
+        405 => "405 Method Not Allowed",
+        406 => "406 Not Acceptable",
+        407 => "407 Proxy Authentication Required",
+        408 => "408 Request Time-out",
+        409 => "409 Conflict",
+        410 => "410 Gone",
+        411 => "411 Length Required",
+        412 => "412 Precondition Failed",
+        413 => "413 Request Entity Too Large",
+        414 => "414 Request-URI Too Large",
+        415 => "415 Unsupported Media Type",
+        416 => "416 Requested range not satisfiable",
+        417 => "417 Expectation Failed",
+        418 => "418 I am a teapot",
+        500 => "500 Internal Server Error",
+        501 => "501 Not Implemented",
+        502 => "502 Bad Gateway",
+        503 => "503 Service Unavailable",
+        504 => "504 Gateway Time-out"
     );
 
     // header without ':' suffix
@@ -1286,15 +1357,17 @@ final class Headers
      */
     public array $current_headers;
 
-    public bool $send;
+    public bool $must_send_headers;
 
     public function __construct()
     {
         $this->current_headers = [];
-        $this->send = true;
+        $this->must_send_headers = true;
     }
 
     /**
+     * Добавляет хедер
+     *
      * @param string $header_name
      * @param string $header_content
      * @param bool $header_replace
@@ -1314,17 +1387,19 @@ final class Headers
             'code'      =>  $header_code
         ];
 
-        $this->send = true;
+        $this->must_send_headers = true;
 
         return $this;
     }
 
     /**
+     * Посылает все установленные хедеры
+     *
      * @return bool
      */
     public function send():bool
     {
-        if (false === $this->send) {
+        if (false === $this->must_send_headers) {
             return false;
         }
 
@@ -1344,12 +1419,33 @@ final class Headers
             ];
         }
         foreach ($set as $header) {
-            // header($header['header'], $header['replace'], $header['code']);
-            var_dump($header);
+            header($header['header'], $header['replace'], $header['code']);
         }
         return true;
     }
 
+    /**
+     * Посылает HTTP Response Code
+     *
+     * @param $code
+     * @return void
+     */
+    public function sendHttpCode($code):void
+    {
+        if (!array_key_exists($code, self::HTTP_CODES)) {
+            $code = 200;
+        }
+
+        $protocol = ($_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0');
+
+        header($protocol . ' ' . $code . ' ' . self::HTTP_CODES[ $code ]);
+    }
+
+    /**
+     * Проверяет, пусты ли заготовленные к отправке заголовки?
+     *
+     * @return bool
+     */
     public function isEmpty():bool
     {
         return empty($this->current_headers);

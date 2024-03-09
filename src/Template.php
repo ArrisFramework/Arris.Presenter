@@ -10,7 +10,7 @@ class Template implements TemplateInterface
     /**
      * Smarty instance
      *
-     * @var Smarty
+     * @var Smarty|null
      */
     private ?Smarty $smarty = null;
 
@@ -19,7 +19,7 @@ class Template implements TemplateInterface
      *
      * @var Config
      */
-    private $smarty_options;
+    private Config $smarty_options;
 
     /**
      * @var Config
@@ -31,7 +31,7 @@ class Template implements TemplateInterface
      *
      * @var array
      */
-    private $template_vars = [];
+    private array $template_vars = [];
 
     /**
      * Smarty Plugins for deferred init
@@ -61,6 +61,11 @@ class Template implements TemplateInterface
 
     public Headers $headers;
 
+    /**
+     * @var array
+     */
+    public $REQUEST;
+
     public function __construct($request = [], $smarty_options = [], $template_options = [], $logger = null)
     {
         $this->REQUEST = $request;
@@ -77,18 +82,36 @@ class Template implements TemplateInterface
         }
     }
 
+    /**
+     * Устанавливает каталог шаблонов SMARTY
+     *
+     * @param string $dir
+     * @return $this
+     */
     public function setTemplateDir(string $dir):Template
     {
         $this->smarty_options->setTemplateDir = $dir;
         return $this;
     }
 
+    /**
+     * Устанавливает каталог скомпилированных шаблонов
+     *
+     * @param string $dir
+     * @return $this
+     */
     public function setCompileDir(string $dir):Template
     {
         $this->smarty_options->setCompileDir = $dir;
         return $this;
     }
 
+    /**
+     * Устанавливает флаг принудительной компиляции шаблонов при каждом запросе
+     *
+     * @param bool $force_compile
+     * @return $this
+     */
     public function setForceCompile(bool $force_compile):Template
     {
         $this->smarty_options->set('setForceCompile', $force_compile);
@@ -97,6 +120,14 @@ class Template implements TemplateInterface
     }
 
     /**
+     * Регистрирует плагин для поздней инициализации
+     *
+     * @param int $type
+     * @param string $name
+     * @param $callback
+     * @param $cacheable
+     * @param $cache_attr
+     * @return $this
      * @throws SmartyException
      */
     public function registerPlugin(int $type, string $name, $callback, $cacheable = true, $cache_attr = null):Template
@@ -119,6 +150,10 @@ class Template implements TemplateInterface
         return $this;
     }
 
+    /**
+     * @param string $config_dir
+     * @return $this
+     */
     public function setConfigDir(string $config_dir):Template
     {
         $this->smarty_options->set('setConfigDir', $config_dir);
@@ -131,7 +166,7 @@ class Template implements TemplateInterface
      * @return void
      * @throws SmartyException
      */
-    public function initSmarty()
+    private function initSmarty()
     {
         $this->smarty = new Smarty();
 
@@ -171,18 +206,9 @@ class Template implements TemplateInterface
 
     }
 
-    public function setRedirectOptions(string $uri = '/', int $code = 200):self
-    {
-        $this->redirect_options = [
-            '_'     =>  true,
-            'uri'   =>  $uri,
-            'code'  =>  $code
-        ];
-
-        return $this;
-    }
-
     /**
+     * Проверяет, инициирован ли редирект?
+     *
      * @return bool
      */
     public function isRedirect():bool
@@ -191,6 +217,7 @@ class Template implements TemplateInterface
     }
 
     /**
+     * Собственно, выполняет редирект на основе установленных параметров
      *
      * @param string|null $uri
      * @param int|null $code
@@ -246,7 +273,6 @@ class Template implements TemplateInterface
         exit(0);
     }
 
-
     public function setTemplate(string $filename = ''): Template
     {
         $this->template_file = empty($filename) ? '' : $filename;
@@ -291,7 +317,7 @@ class Template implements TemplateInterface
     }
 
     /**
-     * Assing Template variables
+     * Assign Template variables
      *
      * @param $key
      * @param $value
@@ -308,12 +334,24 @@ class Template implements TemplateInterface
         }
     }
 
+    /**
+     * Устанавливает сырое значение
+     *
+     * @param string $html
+     * @return void
+     */
     public function assignRAW(string $html):void
     {
         $this->raw_content = $html;
         $this->setRenderType( TemplateInterface::CONTENT_TYPE_RAW );
     }
 
+    /**
+     * Устанавливает значения для JSON
+     *
+     * @param array $json
+     * @return void
+     */
     public function assignJSON(array $json): void
     {
         foreach ($json as $key => $value) {
@@ -322,6 +360,12 @@ class Template implements TemplateInterface
         $this->setRenderType( TemplateInterface::CONTENT_TYPE_JSON );
     }
 
+    /**
+     * Устанавливаает тип рендера
+     *
+     * @param string $type
+     * @return void
+     */
     public function setRenderType(string $type): void
     {
         $this->render_type = $type;
@@ -338,20 +382,20 @@ class Template implements TemplateInterface
      *
      * Для 404 в случае API возвращается всегда 200, но об отсутствии метода отвечает уже обработчик API
      *
-     * @param bool $send_header
+     * @param bool $send_headers
      * @param bool $clean
      * @return string|null
      * @throws SmartyException
      * @throws \JsonException
      */
-    public function render(bool $send_header = true, bool $clean = false): ?string
+    public function render(bool $send_headers = false, bool $clean = false): ?string
     {
         $content = '';
         $need_render = false;
 
         switch ($this->render_type) {
             case self::CONTENT_TYPE_REDIRECT: {
-                $this->headers->send = false;
+                $this->headers->must_send_headers = false;
                 break;
             }
             case self::CONTENT_TYPE_JSON: {
@@ -398,7 +442,9 @@ class Template implements TemplateInterface
             $content = $this->renderTemplate();
         }
 
-        $this->headers->send();
+        if ($send_headers) {
+            $this->headers->send();
+        }
 
         if ($clean) {
             $this->clean();
@@ -431,7 +477,14 @@ class Template implements TemplateInterface
         return $content;
     }
 
-    public function setRedirect(string $uri = '/', int $code = 200): void
+    /**
+     * Устанавливает параметры редиректа
+     *
+     * @param string $uri
+     * @param int $code
+     * @return $this
+     */
+    public function setRedirect(string $uri = '/', int $code = 200):Template
     {
         $this->redirect_options = [
             '_'     =>  true,
@@ -440,9 +493,13 @@ class Template implements TemplateInterface
         ];
 
         $this->setRenderType( self::CONTENT_TYPE_REDIRECT );
+
+        return $this;
     }
 
     /**
+     * Добавляет хедер
+     *
      * @param string $header_name
      * @param string $header_content
      * @param bool $header_replace
@@ -455,9 +512,4 @@ class Template implements TemplateInterface
         return $this;
     }
 
-    public function setHttpResponse($code):Template
-    {
-        $this->headers->add(Headers::_, Headers::HTTP_CODES[$code]);
-        return $this;
-    }
 }
