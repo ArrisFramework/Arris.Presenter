@@ -1,0 +1,13 @@
+{
+    "name": "karelwintersky/arris.template",
+    "description": "Template class for Arris µ-framework, based on Smarty",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Karel Wintersky",
+            "email": "wombat@fontanka.ru"
+        }
+    ],
+    "require": {}
+}
