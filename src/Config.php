@@ -152,7 +152,7 @@ class Config implements ArrayAccess, Countable, IteratorAggregate, JsonSerializa
             return $this;
         }
 
-        $this->options = $value;
+        $this->options[$keys] = $value;
         return $this;
     }
 

@@ -10,6 +10,12 @@ interface TemplateInterface
     const INDEX_PLUGIN_CACHEABLE = 3;
     const INDEX_PLUGIN_CACHEATTR = 4;
 
+    const PLUGIN_FUNCTION         = 'function';
+    const PLUGIN_BLOCK            = 'block';
+    const PLUGIN_COMPILER         = 'compiler';
+    const PLUGIN_MODIFIER         = 'modifier';
+    const PLUGIN_MODIFIERCOMPILER = 'modifiercompiler';
+
     const CONTENT_TYPE_RSS  = 'rss';
     const CONTENT_TYPE_JSON = 'json';
     const CONTENT_TYPE_HTML = 'html';
@@ -35,7 +41,7 @@ interface TemplateInterface
 
     public function setForceCompile(bool $force_compile):Template;
 
-    public function registerPlugin(int $type, string $name, $callback, $cacheable = true, $cache_attr = null):Template;
+    public function registerPlugin(string $type, string $name, $callback, bool $cacheable = true, $cache_attr = null):Template;
 
     public function setConfigDir(string $config_dir):Template;
 

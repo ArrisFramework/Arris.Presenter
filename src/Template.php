@@ -125,12 +125,12 @@ class Template implements TemplateInterface
      * @param int $type
      * @param string $name
      * @param $callback
-     * @param $cacheable
+     * @param bool $cacheable
      * @param $cache_attr
      * @return $this
      * @throws SmartyException
      */
-    public function registerPlugin(int $type, string $name, $callback, $cacheable = true, $cache_attr = null):Template
+    public function registerPlugin(string $type, string $name, $callback, bool $cacheable = true, $cache_attr = null):Template
     {
         if (!\is_callable($callback)) {
             throw new SmartyException("Plugin '{$name}' not callable");
