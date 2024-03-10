@@ -9,10 +9,17 @@ use http\Header;
  */
 final class Headers implements HeadersInterface
 {
+    /**
+     * https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+     * https://en.wikipedia.org/wiki/List_of_HTTP_status_codes
+     * https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
+     */
     public const HTTP_CODES = array(
         100 => "Continue",
         101 => "Switching Protocols",
         102 => "Processing",
+        103 => "Early Hints",
+
         200 => "OK",
         201 => "Created",
         202 => "Accepted",
@@ -21,6 +28,9 @@ final class Headers implements HeadersInterface
         205 => "Reset Content",
         206 => "Partial Content",
         207 => "Multi-Status",
+        208 => "Already Reported",
+        226 => "IM Used",
+
         300 => "Multiple Choices",
         301 => "Moved Permanently",
         302 => "Found",
@@ -30,8 +40,9 @@ final class Headers implements HeadersInterface
         306 => "(Unused)",
         307 => "Temporary Redirect",
         308 => "Permanent Redirect",
+
         400 => "Bad Request",
-        401 => "Unauthorized",
+        401 => "Unauthorized",  // semantically this response means "unauthenticated".
         402 => "Payment Required",
         403 => "Forbidden",
         404 => "Not Found",
@@ -54,7 +65,6 @@ final class Headers implements HeadersInterface
         422 => "Unprocessable Entity",
         423 => "Locked",
         424 => "Failed Dependency",
-        424 => "Method Failure",
         425 => "Unordered Collection",
         426 => "Upgrade Required",
         428 => "Precondition Required",
@@ -69,6 +79,7 @@ final class Headers implements HeadersInterface
         496 => "No Cert",
         497 => "HTTP to HTTPS",
         499 => "Client Closed Request",
+
         500 => "Internal Server Error",
         501 => "Not Implemented",
         502 => "Bad Gateway",
@@ -83,40 +94,6 @@ final class Headers implements HeadersInterface
         511 => "Network Authentication Required",
         598 => "Network read timeout error",
         599 => "Network connect timeout error",
-        204 => "204 No Content",
-        205 => "205 Reset Content",
-        206 => "206 Partial Content",
-        300 => "300 Multiple Choices",
-        301 => "301 Moved Permanently",
-        302 => "302 Found",
-        303 => "303 See Other",
-        304 => "304 Not Modified",
-        305 => "305 Use Proxy",
-        307 => "307 Temporary Redirect",
-        400 => "400 Bad Request",
-        401 => "401 Unauthorized",
-        402 => "402 Payment Required",
-        403 => "403 Forbidden",
-        404 => "404 Not Found",
-        405 => "405 Method Not Allowed",
-        406 => "406 Not Acceptable",
-        407 => "407 Proxy Authentication Required",
-        408 => "408 Request Time-out",
-        409 => "409 Conflict",
-        410 => "410 Gone",
-        411 => "411 Length Required",
-        412 => "412 Precondition Failed",
-        413 => "413 Request Entity Too Large",
-        414 => "414 Request-URI Too Large",
-        415 => "415 Unsupported Media Type",
-        416 => "416 Requested range not satisfiable",
-        417 => "417 Expectation Failed",
-        418 => "418 I am a teapot",
-        500 => "500 Internal Server Error",
-        501 => "501 Not Implemented",
-        502 => "502 Bad Gateway",
-        503 => "503 Service Unavailable",
-        504 => "504 Gateway Time-out"
     );
 
     // header without ':' suffix
@@ -1419,7 +1396,7 @@ final class Headers implements HeadersInterface
             ];
         }
         foreach ($set as $header) {
-            header($header['header'], $header['replace'], $header['code']);
+            \header($header['header'], $header['replace'], $header['code']);
         }
         return true;
     }
@@ -1432,13 +1409,13 @@ final class Headers implements HeadersInterface
      */
     public function sendHttpCode($code):void
     {
-        if (!array_key_exists($code, self::HTTP_CODES)) {
+        if (!\array_key_exists($code, self::HTTP_CODES)) {
             $code = 200;
         }
 
         $protocol = ($_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0');
 
-        header($protocol . ' ' . $code . ' ' . self::HTTP_CODES[ $code ]);
+        \header($protocol . ' ' . $code . ' ' . self::HTTP_CODES[ $code ]);
     }
 
     /**

@@ -7,7 +7,10 @@ use ArrayIterator, ArrayAccess, Countable, IteratorAggregate, JsonSerializable;
 #[\AllowDynamicProperties]
 class Config implements ArrayAccess, Countable, IteratorAggregate, JsonSerializable
 {
-    protected $options = [];
+    /**
+     * @var array
+     */
+    protected array $options = [];
 
     public function __construct($options = [])
     {

@@ -12,7 +12,7 @@ class Helper
     public static function is_ssl():bool
     {
         if (isset($_SERVER['HTTPS'])) {
-            if ('on' == strtolower($_SERVER['HTTPS'])) {
+            if ('on' == \strtolower($_SERVER['HTTPS'])) {
                 return true;
             }
             if ('1' == $_SERVER['HTTPS']) {
@@ -33,13 +33,13 @@ class Helper
      * @param $default_value
      * @return null|mixed
      */
-    public static function getAllowedValue( $data, $allowed_values_array, $default_value = NULL)
+    public static function getAllowedValue($data, $allowed_values_array, $default_value = null)
     {
         if (empty($data)) {
             return $default_value;
         } else {
-            $key = array_search($data, $allowed_values_array);
-            return ($key !== FALSE )
+            $key = \array_search($data, $allowed_values_array);
+            return ($key !== false )
                 ? $allowed_values_array[ $key ]
                 : $default_value;
         }

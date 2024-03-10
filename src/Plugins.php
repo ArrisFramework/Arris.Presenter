@@ -40,7 +40,7 @@ class Plugins
                 continue;
             }
 
-            if (is_callable([self::class, $entity])) {
+            if (\is_callable([self::class, $entity])) {
                 /**
                  * Для определения параметров подключаемого плагина мы парсим аннотации:
                  * https://www.php.net/manual/en/reflectionclass.getdoccomment.php
@@ -59,7 +59,7 @@ class Plugins
                 ], null);
 
                 $pattern_smarty_plugin_type = "#@smarty_plugin_cacheable\s([a-zA-Z]+)#";
-                preg_match_all($pattern_smarty_plugin_type, $comment_string, $matches_cacheable, PREG_PATTERN_ORDER);
+                \preg_match_all($pattern_smarty_plugin_type, $comment_string, $matches_cacheable, PREG_PATTERN_ORDER);
                 $matches_cacheable = empty($matches_cacheable[1]) ? 'true' : $matches_cacheable[1][0];
 
                 $modifier_cacheable = Helper::getAllowedValue($matches_cacheable, [

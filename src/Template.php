@@ -132,7 +132,7 @@ class Template implements TemplateInterface
      */
     public function registerPlugin(int $type, string $name, $callback, $cacheable = true, $cache_attr = null):Template
     {
-        if (!is_callable($callback)) {
+        if (!\is_callable($callback)) {
             throw new SmartyException("Plugin '{$name}' not callable");
         }
 
@@ -231,18 +231,18 @@ class Template implements TemplateInterface
         }
 
         $_uri
-            = is_null($uri)
+            = \is_null($uri)
             ? (
-                array_key_exists('uri', $this->redirect_options)
+                \array_key_exists('uri', $this->redirect_options)
                     ? $this->redirect_options['uri']
                     : null
             )
             : $uri;
 
         $_code
-            = is_null($code)
+            = \is_null($code)
             ? (
-                array_key_exists('code', $this->redirect_options)
+                \array_key_exists('code', $this->redirect_options)
                     ? $this->redirect_options['code']
                     : null
             )
@@ -256,14 +256,11 @@ class Template implements TemplateInterface
             $_code = 200;
         }
 
-        if (
-            strpos( $_uri, "http://" ) !== false ||
-            strpos( $_uri, "https://" ) !== false
-        ) {
+        if ( \preg_match('/^http[s]?:\/\//', $_uri) !== false ) {
             $location = $_uri;
         } else {
             $scheme = Helper::is_ssl() ? "https://" : "http://";
-            $scheme = str_replace('://', '', $scheme);
+            $scheme = \str_replace('://', '', $scheme);
             $location = "{$scheme}://{$_SERVER['HTTP_HOST']}{$_uri}";
         }
 
@@ -289,7 +286,7 @@ class Template implements TemplateInterface
     {
         return
             $varName
-                ? ( array_key_exists($varName, $this->template_vars) ? $this->template_vars[$varName] : '')
+                ? ( \array_key_exists($varName, $this->template_vars) ? $this->template_vars[$varName] : '')
                 : $this->template_vars;
     }
 
@@ -325,7 +322,7 @@ class Template implements TemplateInterface
      */
     public function assign($key, $value = null): void
     {
-        if (is_array($key)) {
+        if (\is_array($key)) {
             foreach ($key as $k => $v) {
                 $this->assign($k, $v);
             }
