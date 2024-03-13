@@ -91,6 +91,7 @@ class Template implements TemplateInterface
     public function setTemplateDir(string $dir):Template
     {
         $this->smarty_options->setTemplateDir = $dir;
+        $this->smarty_options->set('setTemplateDir', $dir);
         return $this;
     }
 
@@ -103,6 +104,7 @@ class Template implements TemplateInterface
     public function setCompileDir(string $dir):Template
     {
         $this->smarty_options->setCompileDir = $dir;
+        $this->smarty_options->set('setCompileDir', $dir);
         return $this;
     }
 
@@ -114,8 +116,20 @@ class Template implements TemplateInterface
      */
     public function setForceCompile(bool $force_compile):Template
     {
+        $this->smarty_options->setForceCompile = $force_compile;
         $this->smarty_options->set('setForceCompile', $force_compile);
 
+        return $this;
+    }
+
+    /**
+     * @param string $config_dir
+     * @return $this
+     */
+    public function setConfigDir(string $config_dir):Template
+    {
+        $this->smarty_options->setConfigDir = $config_dir;
+        $this->smarty_options->set('setConfigDir', $config_dir);
         return $this;
     }
 
@@ -147,16 +161,6 @@ class Template implements TemplateInterface
             self::INDEX_PLUGIN_CACHEABLE => $cacheable,
             self::INDEX_PLUGIN_CACHEATTR => $cache_attr
         ];
-        return $this;
-    }
-
-    /**
-     * @param string $config_dir
-     * @return $this
-     */
-    public function setConfigDir(string $config_dir):Template
-    {
-        $this->smarty_options->set('setConfigDir', $config_dir);
         return $this;
     }
 
