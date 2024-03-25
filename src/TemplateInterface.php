@@ -43,6 +43,8 @@ interface TemplateInterface
 
     public function registerPlugin(string $type, string $name, $callback, bool $cacheable = true, $cache_attr = null):Template;
 
+    public function registerClass(string $name, string $implementation):Template;
+
     public function setConfigDir(string $config_dir):Template;
 
     public function setTemplate(string $filename = ''):Template;

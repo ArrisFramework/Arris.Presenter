@@ -38,7 +38,14 @@ class Template implements TemplateInterface
      *
      * @var array
      */
-    private array $smarty_plugins = [];
+    public array $smarty_plugins = [];
+
+    /**
+     * Classes for deferred init
+     *
+     * @var array
+     */
+    public array $smarty_classes = [];
 
     private array $redirect_options = [
         '_'     =>   false
@@ -144,7 +151,7 @@ class Template implements TemplateInterface
      * @return $this
      * @throws SmartyException
      */
-    public function registerPlugin(string $type, string $name, $callback, bool $cacheable = true, $cache_attr = null):Template
+    public function registerPlugin(string $type, string $name, $callback, bool $cacheable = false, $cache_attr = null):Template
     {
         if (!\is_callable($callback)) {
             throw new SmartyException("Plugin '{$name}' not callable");
@@ -154,13 +161,39 @@ class Template implements TemplateInterface
             throw new SmartyException("Cannot set caching attributes for plugin '{$name}' when it is cacheable.");
         }
 
-        $this->smarty_plugins[] = [
+        $this->smarty_plugins[ $name ] = [
             self::INDEX_PLUGIN_TYPE => $type,
             self::INDEX_PLUGIN_NAME => $name,
             self::INDEX_PLUGIN_CALLBACK => $callback,
             self::INDEX_PLUGIN_CACHEABLE => $cacheable,
             self::INDEX_PLUGIN_CACHEATTR => $cache_attr
         ];
+        return $this;
+    }
+
+    /**
+     * Регистрируем класс для поздней инициализации
+     *
+     * @param string $name
+     * @param string $implementation
+     * @return $this
+     * @throws SmartyException
+     */
+    public function registerClass(string $name, string $implementation):Template
+    {
+        if (empty($name)) {
+            throw new SmartyException("Can't register class with empty name");
+        }
+
+        if (empty($implementation)) {
+            throw new SmartyException("Can't register class {$name} with empty implementation");
+        }
+
+        $this->smarty_classes[ $name ] = [
+            'name'  =>  $name,
+            'impl'  =>  $implementation
+        ];
+
         return $this;
     }
 
@@ -208,6 +241,9 @@ class Template implements TemplateInterface
             );
         }
 
+        foreach ($this->smarty_classes as $class) {
+            $this->smarty->registerClass($class['name'], $class['impl']);
+        }
     }
 
     /**

@@ -12,7 +12,7 @@
     "require": {
         "php": "^7.4 || 8.*",
         "ext-json": "*",
-        "smarty/smarty": "^4.4"
+        "smarty/smarty": "^4.4.1"
     },
     "autoload": {
         "psr-4": {
