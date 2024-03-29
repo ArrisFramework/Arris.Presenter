@@ -80,6 +80,8 @@ interface TemplateInterface
 
     public function assignJSON(array $json): void;
 
+    public function setJSON($json):void;
+
     public function setRenderType(string $type): void;
 
     public function addHeader(string $header_name = '', string $header_content = 'text/html; charset=utf-8', bool $header_replace = true, int $header_code = 0):Template;

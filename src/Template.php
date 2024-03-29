@@ -4,6 +4,7 @@ namespace Arris\Template;
 
 use Smarty;
 use SmartyException;
+use Arris\Entity\Result;
 
 class Template implements TemplateInterface
 {
@@ -85,7 +86,7 @@ class Template implements TemplateInterface
      *
      * @var Result
      */
-    private Result $json;
+    public $json;
 
     public function __construct($request = [], $smarty_options = [], $template_options = [], $logger = null)
     {
@@ -423,7 +424,7 @@ class Template implements TemplateInterface
     }
 
     /**
-     * Устанавливает значения для JSON
+     * Добавляет значения в JSON-набор данных
      *
      * @param array $json
      * @return void
@@ -431,6 +432,22 @@ class Template implements TemplateInterface
     public function assignJSON(array $json): void
     {
         $this->json->setData($json);
+        $this->setRenderType( TemplateInterface::CONTENT_TYPE_JSON );
+    }
+
+    /**
+     * Устанавливает значение JSON-набора данных напрямую (передает инстанс Result)
+     *
+     * @param $json
+     * @return void
+     */
+    public function setJSON($json):void
+    {
+        if (is_array($json)) {
+            $this->json->setData($json);
+        } elseif ($json instanceof Result) {
+            $this->json = $json;
+        }
         $this->setRenderType( TemplateInterface::CONTENT_TYPE_JSON );
     }
 
