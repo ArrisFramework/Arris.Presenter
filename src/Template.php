@@ -47,6 +47,13 @@ class Template implements TemplateInterface
      */
     public array $smarty_classes = [];
 
+    /**
+     * Кастомные опции Smarty для ленивой инициализации
+     *
+     * @var array
+     */
+    public array $smarty_custom_options = [];
+
     private array $redirect_options = [
         '_'     =>   false
     ];
@@ -73,6 +80,13 @@ class Template implements TemplateInterface
      */
     public $REQUEST;
 
+    /**
+     * JSON Data
+     *
+     * @var Result
+     */
+    private Result $json;
+
     public function __construct($request = [], $smarty_options = [], $template_options = [], $logger = null)
     {
         $this->REQUEST = $request;
@@ -87,6 +101,8 @@ class Template implements TemplateInterface
         if (\array_key_exists('source', $template_options)) {
             $this->setTemplate($template_options['source']);
         }
+
+        $this->json = new Result();
     }
 
     /**
@@ -198,6 +214,25 @@ class Template implements TemplateInterface
     }
 
     /**
+     * Задает значение "нативной" опции Smarty для поздней инициализации.
+     * Это значение будет установлено напрямую полю объекта Smarty
+     * Например, как:
+     * $smarty->left_delimiter
+     * $smarty->right_delimiter
+     * https://www.smarty.net/docsv2/ru/language.escaping.tpl
+     *
+     * @param $key_name
+     * @param $key_value
+     * @return $this
+     */
+    public function setSmartyNativeOption($key_name, $key_value):Template
+    {
+        $this->smarty_custom_options[$key_name] = $key_value;
+
+        return $this;
+    }
+
+    /**
      * Поздняя инициализация Smarty
      *
      * @return void
@@ -227,6 +262,10 @@ class Template implements TemplateInterface
          * PHP8: activate convert warnings about undefined or null template vars -> to notices
          */
         $this->smarty->muteUndefinedOrNullWarnings();
+
+        foreach ($this->smarty_custom_options as $key => $value) {
+            $this->smarty->{$key} = $value;
+        }
 
         /**
          * Register plugins
@@ -391,9 +430,7 @@ class Template implements TemplateInterface
      */
     public function assignJSON(array $json): void
     {
-        foreach ($json as $key => $value) {
-            $this->assign($key, $value);
-        }
+        $this->json->setData($json);
         $this->setRenderType( TemplateInterface::CONTENT_TYPE_JSON );
     }
 
@@ -432,11 +469,16 @@ class Template implements TemplateInterface
 
         switch ($this->render_type) {
             case self::CONTENT_TYPE_REDIRECT: {
-                $this->headers->must_send_headers = false;
+                $this->headers->need_send_headers = false;
                 break;
             }
             case self::CONTENT_TYPE_JSON: {
-                $content = \json_encode($this->template_vars, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_NUMERIC_CHECK | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
+                $content = \json_encode($this->json->getAll(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_NUMERIC_CHECK | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
+                $this->addHeader(Headers::CONTENT_TYPE,'application/json; charset=utf-8');
+                break;
+            }
+            case self::CONTENT_TYPE_JSON_RAW: {
+                $content = \json_encode($this->json->getData(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_NUMERIC_CHECK | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
                 $this->addHeader(Headers::CONTENT_TYPE,'application/json; charset=utf-8');
                 break;
             }

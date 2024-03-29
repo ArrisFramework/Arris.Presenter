@@ -1334,12 +1334,12 @@ final class Headers implements HeadersInterface
      */
     public array $current_headers;
 
-    public bool $must_send_headers;
+    public bool $need_send_headers;
 
     public function __construct()
     {
         $this->current_headers = [];
-        $this->must_send_headers = true;
+        $this->need_send_headers = true;
     }
 
     /**
@@ -1364,7 +1364,7 @@ final class Headers implements HeadersInterface
             'code'      =>  $header_code
         ];
 
-        $this->must_send_headers = true;
+        $this->need_send_headers = true;
 
         return $this;
     }
@@ -1376,7 +1376,7 @@ final class Headers implements HeadersInterface
      */
     public function send():bool
     {
-        if (false === $this->must_send_headers) {
+        if (false === $this->need_send_headers) {
             return false;
         }
 

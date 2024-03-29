@@ -17,7 +17,20 @@ interface TemplateInterface
     const PLUGIN_MODIFIERCOMPILER = 'modifiercompiler';
 
     const CONTENT_TYPE_RSS  = 'rss';
+
+    /**
+     * Тип шаблонных данных JSON, вернется сериализация объекта Result
+     */
     const CONTENT_TYPE_JSON = 'json';
+
+    /**
+     * Тип шаблонных данных JSON, вернется сериализация поля `data` объекта `Result`
+     */
+    const CONTENT_TYPE_JSON_RAW = 'json_raw';
+
+    /**
+     * Тип данных по-умолчанию
+     */
     const CONTENT_TYPE_HTML = 'html';
     const CONTENT_TYPE_JS   = 'js'; // 'application/javascript'
     const CONTENT_TYPE_RAW  = 'raw';
@@ -44,6 +57,8 @@ interface TemplateInterface
     public function registerPlugin(string $type, string $name, $callback, bool $cacheable = true, $cache_attr = null):Template;
 
     public function registerClass(string $name, string $implementation):Template;
+
+    public function setSmartyNativeOption($key_name, $key_value):Template;
 
     public function setConfigDir(string $config_dir):Template;
 
