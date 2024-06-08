@@ -4,41 +4,7 @@ namespace Arris\Template;
 
 interface TemplateInterface
 {
-    const INDEX_PLUGIN_TYPE = 0;
-    const INDEX_PLUGIN_NAME = 1;
-    const INDEX_PLUGIN_CALLBACK = 2;
-    const INDEX_PLUGIN_CACHEABLE = 3;
-    const INDEX_PLUGIN_CACHEATTR = 4;
 
-    const PLUGIN_FUNCTION         = 'function';
-    const PLUGIN_BLOCK            = 'block';
-    const PLUGIN_COMPILER         = 'compiler';
-    const PLUGIN_MODIFIER         = 'modifier';
-    const PLUGIN_MODIFIERCOMPILER = 'modifiercompiler';
-
-    const CONTENT_TYPE_RSS  = 'rss';
-
-    /**
-     * Тип шаблонных данных JSON, вернется сериализация объекта Result
-     */
-    const CONTENT_TYPE_JSON = 'json';
-
-    /**
-     * Тип шаблонных данных JSON, вернется сериализация поля `data` объекта `Result`
-     */
-    const CONTENT_TYPE_JSON_RAW = 'json_raw';
-
-    /**
-     * Тип данных по-умолчанию
-     */
-    const CONTENT_TYPE_HTML = 'html';
-    const CONTENT_TYPE_JS   = 'js'; // 'application/javascript'
-    const CONTENT_TYPE_RAW  = 'raw';
-
-    const CONTENT_TYPE_404  = '404';
-    const CONTENT_TYPE_500  = '500';
-
-    const CONTENT_TYPE_REDIRECT = 'redirect';
 
     /**
      * @param $request

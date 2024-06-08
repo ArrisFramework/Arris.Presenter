@@ -5,7 +5,7 @@ namespace Arris\Template;
 use ArrayIterator, ArrayAccess, Countable, IteratorAggregate, JsonSerializable;
 
 #[\AllowDynamicProperties]
-class Config implements ArrayAccess, Countable, IteratorAggregate, JsonSerializable
+class Repository implements ArrayAccess, Countable, IteratorAggregate, JsonSerializable
 {
     /**
      * @var array

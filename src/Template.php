@@ -9,6 +9,54 @@ use Arris\Entity\Result;
 class Template implements TemplateInterface
 {
     /**
+     * Константы для плагинов
+     */
+    const PLUGIN_FUNCTION         = 'function';
+    const PLUGIN_BLOCK            = 'block';
+    const PLUGIN_COMPILER         = 'compiler';
+    const PLUGIN_MODIFIER         = 'modifier';
+    const PLUGIN_MODIFIERCOMPILER = 'modifiercompiler';
+
+    /**
+     * Внутренние константы
+     */
+    const INDEX_PLUGIN_TYPE = 0;
+    const INDEX_PLUGIN_NAME = 1;
+    const INDEX_PLUGIN_CALLBACK = 2;
+    const INDEX_PLUGIN_CACHEABLE = 3;
+    const INDEX_PLUGIN_CACHEATTR = 4;
+
+    /**
+     * Типы данных
+     */
+    const CONTENT_TYPE_RSS  = 'rss';
+
+    /**
+     * Тип шаблонных данных JSON, вернется сериализация объекта Result
+     */
+    const CONTENT_TYPE_JSON = 'json';
+
+    /**
+     * Тип шаблонных данных JSON, вернется сериализация поля `data` объекта `Result`
+     */
+    const CONTENT_TYPE_JSON_RAW = 'json_raw';
+
+    /**
+     * Тип данных по-умолчанию
+     */
+    const CONTENT_TYPE_HTML = 'html';
+    const CONTENT_TYPE_JS   = 'js'; // 'application/javascript'
+    const CONTENT_TYPE_RAW  = 'raw';
+
+    const CONTENT_TYPE_404  = '404';
+    const CONTENT_TYPE_500  = '500';
+
+    /**
+     * Тип данных: редирект
+     */
+    const CONTENT_TYPE_REDIRECT = 'redirect';
+
+    /**
      * Smarty instance
      *
      * @var Smarty|null
@@ -18,12 +66,12 @@ class Template implements TemplateInterface
     /**
      * Smarty Options for deferred init
      *
-     * @var Config
+     * @var Repository
      */
-    private Config $smarty_options;
+    private Repository $smarty_options;
 
     /**
-     * @var Config
+     * @var Repository
      */
     private $template_options;
 
@@ -91,8 +139,11 @@ class Template implements TemplateInterface
     public function __construct($request = [], $smarty_options = [], $template_options = [], $logger = null)
     {
         $this->REQUEST = $request;
-        $this->smarty_options = new Config($smarty_options);
-        $this->template_options = new Config($template_options);
+        $this->smarty_options = new Repository($smarty_options);
+        $this->template_options = new Repository($template_options);
+
+        //@todo: может быть template_vars тоже Repository ?
+
         $this->headers = new Headers();
 
         if (\array_key_exists('file', $template_options)) {
