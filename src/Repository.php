@@ -25,8 +25,8 @@ class Repository implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
     /**
      * @param int|string $offset
      * @return bool
-     * #[\ReturnTypeWillChange]
      */
+    #[\ReturnTypeWillChange]
     public function offsetExists($offset): bool
     {
         return $this->has($offset);
@@ -35,13 +35,14 @@ class Repository implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
     /**
      * @param int|string $offset
      * @return mixed
-     * #[\ReturnTypeWillChange]
      */
+    #[\ReturnTypeWillChange]
     public function offsetGet($offset)
     {
         return $this->get($offset);
     }
 
+    #[\ReturnTypeWillChange]
     public function offsetSet($offset, $value): void
     {
         if (is_null($offset)) {
@@ -51,6 +52,7 @@ class Repository implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
         $this->set($offset, $value);
     }
 
+    #[\ReturnTypeWillChange]
     public function offsetUnset($offset): void
     {
         $this->delete($offset);
@@ -63,8 +65,8 @@ class Repository implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
 
     /**
      * @return array
-     * #[\ReturnTypeWillChange]
      */
+    #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
         return $this->options;
