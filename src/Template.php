@@ -2,6 +2,8 @@
 
 namespace Arris\Template;
 
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Smarty;
 use SmartyException;
 use Arris\Entity\Result;
@@ -9,52 +11,40 @@ use Arris\Entity\Result;
 class Template implements TemplateInterface
 {
     /**
-     * Константы для плагинов
+     * Типы данных для рендера
      */
-    const PLUGIN_FUNCTION         = 'function';
-    const PLUGIN_BLOCK            = 'block';
-    const PLUGIN_COMPILER         = 'compiler';
-    const PLUGIN_MODIFIER         = 'modifier';
-    const PLUGIN_MODIFIERCOMPILER = 'modifiercompiler';
-
-    /**
-     * Внутренние константы
-     */
-    const INDEX_PLUGIN_TYPE = 0;
-    const INDEX_PLUGIN_NAME = 1;
-    const INDEX_PLUGIN_CALLBACK = 2;
-    const INDEX_PLUGIN_CACHEABLE = 3;
-    const INDEX_PLUGIN_CACHEATTR = 4;
-
-    /**
-     * Типы данных
-     */
-    const CONTENT_TYPE_RSS  = 'rss';
-
-    /**
-     * Тип шаблонных данных JSON, вернется сериализация объекта Result
-     */
-    const CONTENT_TYPE_JSON = 'json';
-
-    /**
-     * Тип шаблонных данных JSON, вернется сериализация поля `data` объекта `Result`
-     */
-    const CONTENT_TYPE_JSON_RAW = 'json_raw';
-
-    /**
-     * Тип данных по-умолчанию
-     */
+    const CONTENT_TYPE_RSS  = 'rss'; // RSS
+    const CONTENT_TYPE_JSON = 'json'; // Тип шаблонных данных JSON RAW
+    const CONTENT_TYPE_JSON_RAW = 'json_raw'; // Тип шаблонных данных JSON RAW
     const CONTENT_TYPE_HTML = 'html';
     const CONTENT_TYPE_JS   = 'js'; // 'application/javascript'
     const CONTENT_TYPE_RAW  = 'raw';
+    const CONTENT_TYPE_RESULT = 'result';
+    const CONTENT_TYPE_REDIRECT = 'redirect';
 
     const CONTENT_TYPE_404  = '404';
     const CONTENT_TYPE_500  = '500';
 
     /**
-     * Тип данных: редирект
+     * Available content header types
      */
-    const CONTENT_TYPE_REDIRECT = 'redirect';
+    const CONTENT_HEADER_TYPES = [
+        self::CONTENT_TYPE_RSS      =>  'Content-type: application/xml',
+        self::CONTENT_TYPE_JSON     =>  'Content-Type: application/json; charset=utf-8',
+        self::CONTENT_TYPE_JSON_RAW =>  'Content-Type: application/json; charset=utf-8',
+
+        self::CONTENT_TYPE_HTML     =>  "Content-Type: text/html; charset=utf-8",
+        self::CONTENT_TYPE_JS       =>  "Content-Type: text/javascript;charset=utf-8",
+
+        self::CONTENT_TYPE_RAW      =>  "Content-Type: text/html; charset=utf-8",
+        self::CONTENT_TYPE_RESULT   =>  'Content-Type: application/json; charset=utf-8',
+
+        self::CONTENT_TYPE_404      =>  "HTTP/1.0 404 Not Found",
+        self::CONTENT_TYPE_500      =>  "HTTP/1.0 500 Internal server error",
+
+        '_'                         =>  "Content-Type: text/html; charset=utf-8",
+    ];
+
 
     /**
      * Smarty instance
@@ -74,13 +64,6 @@ class Template implements TemplateInterface
      * @var Repository
      */
     private $template_options;
-
-    /**
-     * Assigned-переменные шаблона
-     *
-     * @var array
-     */
-    private array $template_vars = [];
 
     /**
      * Smarty Plugins for deferred init
@@ -103,25 +86,62 @@ class Template implements TemplateInterface
      */
     public array $smarty_custom_options = [];
 
+    /**
+     * Опции редиректа
+     *
+     * @var array
+     */
     private array $redirect_options = [
-        '_'     =>   false
+        '_'         =>  false,      // Флаг "инициирован ли редирект?"
+        'target'    =>  '',         // Куда
+        'code'      =>  301         // С каким кодом?
     ];
 
     /**
+     * Файл глобального шаблона
+     *
      * @var string
      */
     private string $template_file = '';
 
     /**
+     * Тип рендера, по умолчанию - HTML
+     *
      * @var string
      */
     private string $render_type = self::CONTENT_TYPE_HTML;
 
     /**
+     * Assigned-переменные шаблона
+     *
+     * @var array
+     */
+    private array $assigned_template_vars = [];
+
+    /**
+     * Assigned сырой контент, который надо отдать в as-is, без smarty-рендера
+     *
      * @var string
      */
-    private string $raw_content = '';
+    private string $assigned_raw_content = '';
 
+    /**
+     * Assigned result content
+     *
+     * @var Result|null
+     */
+    private ?Result $assigned_result;
+
+    /**
+     * Assigned JSON content
+     *
+     * @var Result|null
+     */
+    private ?Result $assigned_json;
+
+    /**
+     * @var Headers
+     */
     public Headers $headers;
 
     /**
@@ -130,17 +150,25 @@ class Template implements TemplateInterface
     public $REQUEST;
 
     /**
-     * JSON Data
-     *
-     * @var Result
+     * @var LoggerInterface|null
      */
-    public $json;
+    public $logger = null;
 
-    public function __construct($request = [], $smarty_options = [], $template_options = [], $logger = null)
+    /**
+     * Constructor
+     *
+     * @param array $smarty_options
+     * @param array $template_options
+     * @param $logger
+     */
+    public function __construct(array $smarty_options = [], array $template_options = [], $logger = null)
     {
-        $this->REQUEST = $request;
         $this->smarty_options = new Repository($smarty_options);
         $this->template_options = new Repository($template_options);
+
+        if (is_null($logger)) {
+            $this->logger = new NullLogger();
+        }
 
         //@todo: может быть template_vars тоже Repository ?
 
@@ -154,7 +182,7 @@ class Template implements TemplateInterface
             $this->setTemplate($template_options['source']);
         }
 
-        $this->json = new Result();
+        $this->assigned_json = new Result();
     }
 
     /**
@@ -211,11 +239,11 @@ class Template implements TemplateInterface
     /**
      * Регистрирует плагин для поздней инициализации
      *
-     * @param int $type
+     * @param string $type
      * @param string $name
      * @param $callback
      * @param bool $cacheable
-     * @param $cache_attr
+     * @param null $cache_attr
      * @return $this
      * @throws SmartyException
      */
@@ -230,11 +258,11 @@ class Template implements TemplateInterface
         }
 
         $this->smarty_plugins[ $name ] = [
-            self::INDEX_PLUGIN_TYPE => $type,
-            self::INDEX_PLUGIN_NAME => $name,
-            self::INDEX_PLUGIN_CALLBACK => $callback,
-            self::INDEX_PLUGIN_CACHEABLE => $cacheable,
-            self::INDEX_PLUGIN_CACHEATTR => $cache_attr
+            TemplateInterface::INDEX_PLUGIN_TYPE        => $type,
+            TemplateInterface::INDEX_PLUGIN_NAME        => $name,
+            TemplateInterface::INDEX_PLUGIN_CALLBACK    => $callback,
+            TemplateInterface::INDEX_PLUGIN_CACHEABLE   => $cacheable,
+            TemplateInterface::INDEX_PLUGIN_CACHEATTR   => $cache_attr
         ];
         return $this;
     }
@@ -324,11 +352,11 @@ class Template implements TemplateInterface
          */
         foreach ($this->smarty_plugins as $plugin) {
             $this->smarty->registerPlugin(
-                $plugin[ self::INDEX_PLUGIN_TYPE ],
-                $plugin[ self::INDEX_PLUGIN_NAME],
-                $plugin[ self::INDEX_PLUGIN_CALLBACK ],
-                $plugin[ self::INDEX_PLUGIN_CACHEABLE ],
-                $plugin[ self::INDEX_PLUGIN_CACHEATTR ]
+                $plugin[ TemplateInterface::INDEX_PLUGIN_TYPE ],
+                $plugin[ TemplateInterface::INDEX_PLUGIN_NAME],
+                $plugin[ TemplateInterface::INDEX_PLUGIN_CALLBACK ],
+                $plugin[ TemplateInterface::INDEX_PLUGIN_CACHEABLE ],
+                $plugin[ TemplateInterface::INDEX_PLUGIN_CACHEATTR ]
             );
         }
 
@@ -401,6 +429,12 @@ class Template implements TemplateInterface
         exit(0);
     }
 
+    /**
+     * Устанавливает файл глобального шаблона
+     *
+     * @param string $filename
+     * @return $this
+     */
     public function setTemplate(string $filename = ''): Template
     {
         $this->template_file = empty($filename) ? '' : $filename;
@@ -413,17 +447,27 @@ class Template implements TemplateInterface
      * @param $varName
      * @return array|mixed|string
      */
-    public function getTemplateVars($varName = null)
+    public function getAssignedTemplateVars($varName = null)
     {
         return
             $varName
-                ? ( \array_key_exists($varName, $this->template_vars) ? $this->template_vars[$varName] : '')
-                : $this->template_vars;
+                ? ( \array_key_exists($varName, $this->assigned_template_vars) ? $this->assigned_template_vars[$varName] : '')
+                : $this->assigned_template_vars;
     }
 
+    /**
+     * Полная очистка данных.
+     * Очищает данные, переданные в шаблон и в инстанс Smarty
+     *
+     * @param $clear_cache
+     * @return bool
+     */
     public function clean($clear_cache = true): bool
     {
-        $this->template_vars = [];
+        $this->assigned_template_vars = [];
+        $this->assigned_result = null;
+        $this->assigned_json = null;
+        $this->assigned_raw_content = '';
 
         if (!$clear_cache) {
             return true;
@@ -458,7 +502,7 @@ class Template implements TemplateInterface
                 $this->assign($k, $v);
             }
         } else {
-            $this->template_vars[ $key ] = $value;
+            $this->assigned_template_vars[ $key ] = $value;
         }
     }
 
@@ -470,8 +514,8 @@ class Template implements TemplateInterface
      */
     public function assignRAW(string $html):void
     {
-        $this->raw_content = $html;
-        $this->setRenderType( TemplateInterface::CONTENT_TYPE_RAW );
+        $this->assigned_raw_content = $html;
+        $this->setRenderType( Template::CONTENT_TYPE_RAW );
     }
 
     /**
@@ -482,28 +526,42 @@ class Template implements TemplateInterface
      */
     public function assignJSON(array $json): void
     {
-        $this->json->setData($json);
-        $this->setRenderType( TemplateInterface::CONTENT_TYPE_JSON );
+        $this->assigned_json->setData($json);
+        $this->setRenderType( Template::CONTENT_TYPE_JSON );
     }
 
     /**
-     * Устанавливает значение JSON-набора данных напрямую (передает инстанс Result)
+     * Устанавливает значение JSON-набора данных напрямую
      *
      * @param $json
      * @return void
      */
     public function setJSON($json):void
     {
-        if (is_array($json)) {
-            $this->json->setData($json);
+        if (\is_array($json)) {
+            $this->assigned_json->setData($json);
+        } elseif (\is_object($json)) {
+            $this->assigned_json->setData( (array)$json);
         } elseif ($json instanceof Result) {
-            $this->json = $json;
+            $this->assigned_json = $json;
         }
-        $this->setRenderType( TemplateInterface::CONTENT_TYPE_JSON );
+        $this->setRenderType( Template::CONTENT_TYPE_JSON );
     }
 
     /**
-     * Устанавливаает тип рендера
+     * Устанавливает значение набора данных Result
+     *
+     * @param Result $result
+     * @return void
+     */
+    public function assignResult(Result $result)
+    {
+        $this->assigned_result = $result;
+        $this->setRenderType(Template::CONTENT_TYPE_RESULT);
+    }
+
+    /**
+     * Устанавливает тип рендера
      *
      * @param string $type
      * @return void
@@ -541,22 +599,27 @@ class Template implements TemplateInterface
                 break;
             }
             case self::CONTENT_TYPE_JSON: {
-                $content = \json_encode($this->json->getAll(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_NUMERIC_CHECK | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
+                $content = \json_encode($this->assigned_json->getAll(), TemplateInterface::JSON_ENCODE_FLAGS);
                 $this->addHeader(Headers::CONTENT_TYPE,'application/json; charset=utf-8');
                 break;
             }
             case self::CONTENT_TYPE_JSON_RAW: {
-                $content = \json_encode($this->json->getData(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_NUMERIC_CHECK | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
+                $content = \json_encode($this->assigned_json->getData(), TemplateInterface::JSON_ENCODE_FLAGS);
+                $this->addHeader(Headers::CONTENT_TYPE,'application/json; charset=utf-8');
+                break;
+            }
+            case self::CONTENT_TYPE_RESULT: {
+                $content = \json_encode($this->assigned_result, TemplateInterface::JSON_ENCODE_FLAGS);
                 $this->addHeader(Headers::CONTENT_TYPE,'application/json; charset=utf-8');
                 break;
             }
             case self::CONTENT_TYPE_RAW: {
-                $content = $this->raw_content;
+                $content = $this->assigned_raw_content;
                 $this->addHeader(Headers::CONTENT_TYPE, 'text/html; charset=utf-8');
                 break;
             }
             case self::CONTENT_TYPE_JS: {
-                $content = $this->raw_content;
+                $content = $this->assigned_raw_content;
                 $this->addHeader(Headers::CONTENT_TYPE, 'text/javascript;charset=utf-8');
                 break;
             }
@@ -603,6 +666,11 @@ class Template implements TemplateInterface
     /**
      * Render Smarty Template
      *
+     * @todo: try/catch with return Result
+     * - check is file empty
+     * - check is file readable
+     * - check other exceptions
+     *
      * @return string
      * @throws SmartyException
      */
@@ -612,9 +680,20 @@ class Template implements TemplateInterface
             $this->initSmarty();
         }
 
-        foreach ($this->template_vars as $key => $value) {
+        foreach ($this->assigned_template_vars as $key => $value) {
             $this->smarty->assign($key, $value);
         }
+
+        /*
+        if (empty($this->template_file)) {
+            $this->logger->debug("Given empty template");
+            return '';
+        }
+
+        if (!is_readable( $full_path_to_template_file = rtrim($this->smarty->getTemplateDir(), '/') . '/' . $this->template_file)) {
+            $this->logger->debug("Template file is unreadable", [ $full_path_to_template_file ]);
+        }
+        */
 
         $content
             = empty($this->template_file)
