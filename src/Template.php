@@ -11,6 +11,15 @@ use Arris\Entity\Result;
 class Template implements TemplateInterface
 {
     /**
+     * Типы плагинов для Smarty
+     */
+    const PLUGIN_FUNCTION         = 'function';
+    const PLUGIN_BLOCK            = 'block';
+    const PLUGIN_COMPILER         = 'compiler';
+    const PLUGIN_MODIFIER         = 'modifier';
+    const PLUGIN_MODIFIERCOMPILER = 'modifiercompiler';
+
+    /**
      * Типы данных для рендера
      */
     const CONTENT_TYPE_RSS  = 'rss'; // RSS
