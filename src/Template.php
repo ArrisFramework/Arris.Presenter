@@ -23,12 +23,20 @@ class Template implements TemplateInterface
      * Типы данных для рендера
      */
     const CONTENT_TYPE_RSS  = 'rss'; // RSS
+    const CONTENT_TYPE_XML  = 'xml';
+
     const CONTENT_TYPE_JSON = 'json'; // Тип шаблонных данных JSON RAW
     const CONTENT_TYPE_JSON_RAW = 'json_raw'; // Тип шаблонных данных JSON RAW
+
     const CONTENT_TYPE_HTML = 'html';
+
     const CONTENT_TYPE_JS   = 'js'; // 'application/javascript'
+    const CONTENT_TYPE_JS_RAW = 'js-raw'; // 'application/javascript'
+
     const CONTENT_TYPE_RAW  = 'raw';
+
     const CONTENT_TYPE_RESULT = 'result';
+
     const CONTENT_TYPE_REDIRECT = 'redirect';
 
     const CONTENT_TYPE_404  = '404';
@@ -39,13 +47,18 @@ class Template implements TemplateInterface
      */
     const CONTENT_HEADER_TYPES = [
         self::CONTENT_TYPE_RSS      =>  'Content-type: application/xml',
+        self::CONTENT_TYPE_XML      =>  'Content-type: application/xml',
+
         self::CONTENT_TYPE_JSON     =>  'Content-Type: application/json; charset=utf-8',
         self::CONTENT_TYPE_JSON_RAW =>  'Content-Type: application/json; charset=utf-8',
 
         self::CONTENT_TYPE_HTML     =>  "Content-Type: text/html; charset=utf-8",
+
         self::CONTENT_TYPE_JS       =>  "Content-Type: text/javascript;charset=utf-8",
+        self::CONTENT_TYPE_JS_RAW   =>  "Content-Type: text/javascript;charset=utf-8",
 
         self::CONTENT_TYPE_RAW      =>  "Content-Type: text/html; charset=utf-8",
+
         self::CONTENT_TYPE_RESULT   =>  'Content-Type: application/json; charset=utf-8',
 
         self::CONTENT_TYPE_404      =>  "HTTP/1.0 404 Not Found",
@@ -591,13 +604,13 @@ class Template implements TemplateInterface
      *
      * Для 404 в случае API возвращается всегда 200, но об отсутствии метода отвечает уже обработчик API
      *
-     * @param bool $send_headers
+     * @param bool $need_send_headers
      * @param bool $clean
      * @return string|null
      * @throws SmartyException
      * @throws \JsonException
      */
-    public function render(bool $send_headers = false, bool $clean = false): ?string
+    public function render(bool $need_send_headers = false, bool $clean = false): ?string
     {
         $content = '';
         $need_render = false;
@@ -628,10 +641,17 @@ class Template implements TemplateInterface
                 break;
             }
             case self::CONTENT_TYPE_JS: {
+                $need_render = true;
+                $need_send_headers = true;
+                $this->addHeader(Headers::CONTENT_TYPE, 'text/javascript;charset=utf-8');
+                break;
+            }
+            case self::CONTENT_TYPE_JS_RAW: {
                 $content = $this->assigned_raw_content;
                 $this->addHeader(Headers::CONTENT_TYPE, 'text/javascript;charset=utf-8');
                 break;
             }
+            case self::CONTENT_TYPE_XML:
             case self::CONTENT_TYPE_RSS: {
                 $this->addHeader(Headers::CONTENT_TYPE, 'Content-type: application/xml');
                 $need_render = true;
@@ -661,7 +681,7 @@ class Template implements TemplateInterface
             $content = $this->renderTemplate();
         }
 
-        if ($send_headers) {
+        if ($need_send_headers) {
             $this->headers->send();
         }
 
