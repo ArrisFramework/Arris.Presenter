@@ -2,14 +2,6 @@
 
 Flash messages enables you to define transient messages that persist only from the current request to the next request.
 
-## Install
-
-Via Composer
-
-``` bash
-$ composer require ajur-media/template.flash
-```
-
 ## Usage
 
 ### Slim 3
@@ -53,4 +45,4 @@ $ phpunit
 
 ## License
 
-The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
+The MIT License (MIT). Please see [License File](LICENSE) for more information.
