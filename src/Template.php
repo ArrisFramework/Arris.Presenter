@@ -102,11 +102,21 @@ class Template implements TemplateInterface
     public array $smarty_classes = [];
 
     /**
+     * Фильтры для отложенной инициализации.
+     * Используется для loadFilter()
+     *
+     * @var array
+     */
+    public array $smarty_filters = [];
+
+    /**
      * Кастомные опции Smarty для ленивой инициализации
      *
      * @var array
      */
     public array $smarty_custom_options = [];
+
+    public $smarty_custom_option_escape_html = false;
 
     /**
      * Опции редиректа
@@ -318,9 +328,7 @@ class Template implements TemplateInterface
     /**
      * Задает значение "нативной" опции Smarty для поздней инициализации.
      * Это значение будет установлено напрямую полю объекта Smarty
-     * Например, как:
-     * $smarty->left_delimiter
-     * $smarty->right_delimiter
+     *
      * https://www.smarty.net/docsv2/ru/language.escaping.tpl
      *
      * @param $key_name
@@ -340,7 +348,7 @@ class Template implements TemplateInterface
      * @return void
      * @throws SmartyException
      */
-    private function initSmarty()
+    private function initSmarty(): void
     {
         $this->smarty = new Smarty();
 

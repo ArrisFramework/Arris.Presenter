@@ -2,8 +2,6 @@
 
 namespace Arris\Template;
 
-use http\Header;
-
 /**
  * from: https://packagist.org/packages/lmc/http-constants
  */
