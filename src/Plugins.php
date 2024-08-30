@@ -7,9 +7,9 @@ use ReflectionException;
 use Smarty;
 use SmartyException;
 
-class Plugins
+class Plugins implements PluginsInterface
 {
-    public static $already_registred = [];
+    public static array $already_registred = [];
 
     /**
      * Регистрирует метод класса TemplatePlugins как плагин.
@@ -36,7 +36,7 @@ class Plugins
     public static function register(Smarty $smarty, $plugins = []): void
     {
         foreach ($plugins as $entity) {
-            if (in_array($entity, self::$already_registred)) {
+            if (\in_array($entity, self::$already_registred)) {
                 continue;
             }
 

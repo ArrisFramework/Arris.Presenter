@@ -1,6 +1,6 @@
 <?php
 
-namespace Arris\Template;
+namespace Arris\Template\Core;
 
 class Helper
 {

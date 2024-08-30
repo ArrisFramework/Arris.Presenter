@@ -1,6 +1,6 @@
 <?php
 
-namespace Arris\Template;
+namespace Arris\Template\Core;
 
 use ArrayIterator, ArrayAccess, Countable, IteratorAggregate, JsonSerializable;
 
@@ -60,7 +60,7 @@ class Repository implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
 
     public function count($key = null): int
     {
-        return count($this->get($key));
+        return \count($this->get($key));
     }
 
     /**
@@ -144,7 +144,7 @@ class Repository implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
      * @param $value
      * @return $this
      */
-    public function set($keys, $value = null)
+    public function set($keys, $value = null): self
     {
         if (\is_array($keys)) {
             foreach ($keys as $k => $v) {
@@ -164,7 +164,7 @@ class Repository implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
      * @param $keys
      * @return $this
      */
-    public function delete($keys)
+    public function delete($keys): self
     {
         $keys = (array) $keys;
 

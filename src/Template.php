@@ -2,6 +2,7 @@
 
 namespace Arris\Template;
 
+use Arris\Template\Core\Repository;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Smarty;
@@ -177,6 +178,8 @@ class Template implements TemplateInterface
     public Headers $headers;
 
     /**
+     * @todo: ???
+     *
      * @var array
      */
     public $REQUEST;
@@ -185,6 +188,8 @@ class Template implements TemplateInterface
      * @var LoggerInterface|null
      */
     public $logger = null;
+
+    public Breadcrumbs $breadcrumbs;
 
     /**
      * Constructor
@@ -205,6 +210,8 @@ class Template implements TemplateInterface
         //@todo: может быть template_vars тоже Repository ?
 
         $this->headers = new Headers();
+
+        $this->breadcrumbs = new Breadcrumbs();
 
         if (\array_key_exists('file', $template_options)) {
             $this->setTemplate($template_options['file']);
@@ -776,3 +783,5 @@ class Template implements TemplateInterface
     }
 
 }
+
+#-eof-#
