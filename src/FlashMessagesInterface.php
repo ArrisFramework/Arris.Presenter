@@ -14,7 +14,7 @@ interface FlashMessagesInterface
 
     public function getMessages(): array;
 
-    public function getMessage($key);
+    public function getMessage($key, $default = null);
 
     public function getFirstMessage(string $key, string $default = null);
 

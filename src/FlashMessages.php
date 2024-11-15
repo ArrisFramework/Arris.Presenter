@@ -154,14 +154,15 @@ class FlashMessages implements FlashMessagesInterface
      * Get Flash Message
      *
      * @param string $key The key to get the message from
+     * @param mixed $default Default value
      * @return mixed|null Returns the message
      */
-    public function getMessage($key)
+    public function getMessage($key, $default = null)
     {
         $messages = $this->getMessages();
 
-        // If the key exists then return all messages or null
-        return (isset($messages[$key])) ? $messages[$key] : null;
+        // If the key exists then return all messages or default value
+        return (isset($messages[$key])) ? $messages[$key] : $default;
     }
 
     /**
