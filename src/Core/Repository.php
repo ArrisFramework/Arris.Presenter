@@ -1,6 +1,6 @@
 <?php
 
-namespace Arris\Template\Core;
+namespace Arris\Presenter\Core;
 
 use ArrayIterator, ArrayAccess, Countable, IteratorAggregate, JsonSerializable;
 

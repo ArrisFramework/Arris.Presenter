@@ -20,7 +20,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Arris\\Template\\": "src/"
+            "Arris\\Presenter\\": "src/"
         }
     }
 }

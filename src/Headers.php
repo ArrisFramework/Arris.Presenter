@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace Arris\Template;
+namespace Arris\Presenter;
 
 /**
  * from: https://packagist.org/packages/lmc/http-constants

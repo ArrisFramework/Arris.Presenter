@@ -1,7 +1,8 @@
 <?php
 
-namespace Arris\Template;
+namespace Arris\Presenter;
 
+use Arris\Presenter\Core\Helper;
 use ReflectionClass;
 use ReflectionException;
 use Smarty;

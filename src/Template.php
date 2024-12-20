@@ -1,8 +1,9 @@
 <?php
 
-namespace Arris\Template;
+namespace Arris\Presenter;
 
-use Arris\Template\Core\Repository;
+use Arris\Presenter\Core\Helper;
+use Arris\Presenter\Core\Repository;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Smarty;
@@ -68,7 +69,6 @@ class Template implements TemplateInterface
         '_'                         =>  "Content-Type: text/html; charset=utf-8",
     ];
 
-
     /**
      * Smarty instance
      *
@@ -117,7 +117,7 @@ class Template implements TemplateInterface
      */
     public array $smarty_custom_options = [];
 
-    public $smarty_custom_option_escape_html = false;
+    // public bool $smarty_custom_option_escape_html = false;
 
     /**
      * Опции редиректа
@@ -178,18 +178,13 @@ class Template implements TemplateInterface
     public Headers $headers;
 
     /**
-     * @todo: ???
-     *
-     * @var array
-     */
-    public $REQUEST;
-
-    /**
      * @var LoggerInterface|null
      */
     public $logger = null;
 
     public Breadcrumbs $breadcrumbs;
+
+    public Hooks $hooks_engine;
 
     /**
      * Constructor
@@ -200,18 +195,17 @@ class Template implements TemplateInterface
      */
     public function __construct(array $smarty_options = [], array $template_options = [], $logger = null)
     {
+        $this->logger = $logger ?? new NullLogger();
+
         $this->smarty_options = new Repository($smarty_options);
+
         $this->template_options = new Repository($template_options);
-
-        if (is_null($logger)) {
-            $this->logger = new NullLogger();
-        }
-
-        //@todo: может быть template_vars тоже Repository ?
 
         $this->headers = new Headers();
 
         $this->breadcrumbs = new Breadcrumbs();
+
+        $this->hooks_engine = new Hooks($this->template_options, $this->logger);
 
         if (\array_key_exists('file', $template_options)) {
             $this->setTemplate($template_options['file']);
@@ -220,6 +214,14 @@ class Template implements TemplateInterface
         if (\array_key_exists('source', $template_options)) {
             $this->setTemplate($template_options['source']);
         }
+
+        // удалять ли лишние переводы строк при рендере?
+        $this->setEngineOption(
+            'cleanup_extra_eol',
+            $template_options['cleanup_extra_eol'] ?? true
+        );
+
+        //@todo: может быть template_vars тоже Repository ?
 
         $this->assigned_json = new Result();
     }
@@ -350,6 +352,39 @@ class Template implements TemplateInterface
     }
 
     /**
+     * Устанавливает опцию шаблонизатора
+     *
+     * @param $key_name
+     * @param $key_value
+     * @return $this
+     */
+    public function setEngineOption($key_name, $key_value = null):Template
+    {
+        if (is_array($key_value)) {
+            foreach ($key_name as $ki => $kv) {
+                $this->setEngineOption($ki, $kv);
+            }
+        } else {
+            $this->template_options[$key_name] = $key_value;
+        }
+
+        return $this;
+    }
+
+    public function registerHook($hook, $hook_callback = null):Template
+    {
+        if (is_array($hook)) {
+            foreach ($hook as $name => $callback) {
+                $this->registerHook($name, $callback);
+            }
+        } else {
+            $this->hooks_engine->registerHook($hook, $hook_callback);
+        }
+
+        return $this;
+    }
+
+    /**
      * Поздняя инициализация Smarty
      *
      * @return void
@@ -380,9 +415,15 @@ class Template implements TemplateInterface
          */
         $this->smarty->muteUndefinedOrNullWarnings();
 
+        // $SMARTY->setErrorReporting(E_ALL & ~E_NOTICE & ~E_USER_DEPRECATED); ?
+
         foreach ($this->smarty_custom_options as $key => $value) {
             $this->smarty->{$key} = $value;
         }
+
+        // $this->hooks_engine = new Hooks($this->template_options, $this->logger);
+
+        $this->smarty->registerPlugin(Smarty::PLUGIN_FUNCTION, 'hook', [ $this->hooks_engine, 'run'], false);
 
         /**
          * Register plugins
@@ -496,10 +537,10 @@ class Template implements TemplateInterface
      * Полная очистка данных.
      * Очищает данные, переданные в шаблон и в инстанс Smarty
      *
-     * @param $clear_cache
+     * @param bool $clear_cache
      * @return bool
      */
-    public function clean($clear_cache = true): bool
+    public function clean(bool $clear_cache = true): bool
     {
         $this->assigned_template_vars = [];
         $this->assigned_result = null;
@@ -515,10 +556,7 @@ class Template implements TemplateInterface
                 $this->smarty->clearCache($k);
             }
 
-            if ($clear_cache) {
-                $this->smarty->clearAllCache();
-            }
-
+            $this->smarty->clearAllCache();
             $this->smarty->clearAllAssign();
         }
 
@@ -623,12 +661,13 @@ class Template implements TemplateInterface
      * @param bool $clean
      * @return string|null
      * @throws SmartyException
-     * @throws \JsonException
      */
     public function render(bool $need_send_headers = false, bool $clean = false): ?string
     {
         $content = '';
         $need_render = false;
+
+        // var_dump($this->template_options);die;
 
         switch ($this->render_type) {
             case self::CONTENT_TYPE_REDIRECT: {
@@ -692,6 +731,8 @@ class Template implements TemplateInterface
             }
         } // switch
 
+        $this->hooks_engine->disableNamedParams($this->template_options['hook_disable_named_params']);
+
         if ($need_render) {
             $content = $this->renderTemplate();
         }
@@ -710,15 +751,16 @@ class Template implements TemplateInterface
     /**
      * Render Smarty Template
      *
-     * @todo: try/catch with return Result
+     * @param string $default
+     * @return string
+     * @throws SmartyException
+     * @todo: try/catch with return Result ?
      * - check is file empty
      * - check is file readable
      * - check other exceptions
      *
-     * @return string
-     * @throws SmartyException
      */
-    private function renderTemplate():string
+    private function renderTemplate(string $default = ''):string
     {
         if (! ($this->smarty instanceof Smarty)) {
             $this->initSmarty();
@@ -741,8 +783,13 @@ class Template implements TemplateInterface
 
         $content
             = empty($this->template_file)
-            ? ''
+            ? $default
             : $this->smarty->fetch($this->template_file);
+
+        // удаляем лишние переводы строк
+        if ($this->template_options->get('cleanup_extra_eol')) {
+            $content = \preg_replace('/^\h*\v+/m', '', $content);
+        }
 
         return $content;
     }

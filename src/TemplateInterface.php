@@ -1,6 +1,6 @@
 <?php
 
-namespace Arris\Template;
+namespace Arris\Presenter;
 
 use Arris\Entity\Result;
 
@@ -37,7 +37,7 @@ interface TemplateInterface
 
     public function render(): ?string;
 
-    public function clean($clear_cache = true):bool;
+    public function clean(bool $clear_cache = true):bool;
 
     public function setRedirect(string $uri = '/', int $code = 200):Template;
 

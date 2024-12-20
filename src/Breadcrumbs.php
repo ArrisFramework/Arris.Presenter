@@ -1,8 +1,8 @@
 <?php
 
-namespace Arris\Template;
+namespace Arris\Presenter;
 
-use Arris\Template\Core\Stack;
+use Arris\Presenter\Core\Stack;
 
 class Breadcrumbs implements BreadcrumbsInterface
 {
