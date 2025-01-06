@@ -2,6 +2,7 @@
 
 namespace Arris\Presenter;
 
+use Arris\Presenter\Core\Helper;
 use Arris\Presenter\Core\Repository;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -37,15 +38,30 @@ class Hooks implements HooksInterface
     public bool $disable_named_params = false;
 
     /**
+     * Игнорировать неопределенные хуки
+     *
+     * @var bool TRUE
+     */
+    public bool $ignore_undefined_hooks = true;
+
+    /**
      * Метод для авторезолва ненайденных методов хуков
      *
      * @var callable
      */
     public $auto_resolve_method = null;
 
+    /**
+     * @param Repository $template_options
+     * - hook_disable_named_params FALSE
+     * - ignore_undefined_hooks TRUE - если метод хука не найден/не определен - возвращаем пустую строку как результат хука
+     *
+     * @param LoggerInterface|null $logger
+     */
     public function __construct(Repository $template_options, LoggerInterface $logger = null)
     {
         $this->disable_named_params = (bool)($template_options['hook_disable_named_params'] ?? false);
+        $this->ignore_undefined_hooks = (bool)($template_options['ignore_undefined_hooks'] ?? true);
 
         $this->logger = $logger ?? new NullLogger();
     }
@@ -110,8 +126,10 @@ class Hooks implements HooksInterface
         unset($params['run']);
 
         if (is_null($hook = $this->getHookCallback($hook_name))) {
-            $this->logger->warning("Hook: {$hook_name} not defined");
-            trigger_error("Hook: {$hook_name} not defined", E_USER_WARNING);
+            if (!$this->ignore_undefined_hooks) {
+                $this->logger->warning("Hook: {$hook_name} not defined");
+                trigger_error("Hook: {$hook_name} not defined", E_USER_WARNING);
+            }
             return '';
         }
 
@@ -119,7 +137,7 @@ class Hooks implements HooksInterface
         unset($params['assign']);
 
         //@todo: функциональность заложена, но ПОКА ЧТО $hook всегда callable, а не массив!
-        if (is_array($hook)) {
+        /*if (is_array($hook)) {
             $hook_execute_results = [];
 
             foreach ($hook as $callback) {
@@ -134,7 +152,7 @@ class Hooks implements HooksInterface
 
             // склеиваем строки результатов нескольких хуков
             return implode('', $hook_execute_results);
-        }
+        }*/
 
         $result = $this->executeHook($hook, $params);
 
@@ -161,7 +179,9 @@ class Hooks implements HooksInterface
         // тут нужно делать инстанциирование обработчиков (аналогично compileCallbackHandler?)
         // и прочую логику запуска хуков, возможно, в зависимости от их типа
 
-        return call_user_func_array($hook, $args);
+        $actor = Helper::compileHandler($hook);
+
+        return call_user_func_array($actor, $args);
     }
 
     /**

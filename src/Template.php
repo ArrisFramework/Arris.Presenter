@@ -201,9 +201,9 @@ class Template implements TemplateInterface
 
         $this->template_options = new Repository($template_options);
 
-        $this->headers = new Headers();
+        $this->headers = new Headers($this->logger);
 
-        $this->breadcrumbs = new Breadcrumbs();
+        $this->breadcrumbs = new Breadcrumbs($this->logger);
 
         $this->hooks_engine = new Hooks($this->template_options, $this->logger);
 
@@ -371,14 +371,14 @@ class Template implements TemplateInterface
         return $this;
     }
 
-    public function registerHook($hook, $hook_callback = null):Template
+    public function registerHook($hook, $hook_callback = null, int $priority = 0):Template
     {
         if (is_array($hook)) {
             foreach ($hook as $name => $callback) {
                 $this->registerHook($name, $callback);
             }
         } else {
-            $this->hooks_engine->registerHook($hook, $hook_callback);
+            $this->hooks_engine->registerHook($hook, $hook_callback, $priority);
         }
 
         return $this;

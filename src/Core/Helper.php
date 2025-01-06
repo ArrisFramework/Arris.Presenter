@@ -45,6 +45,58 @@ class Helper
         }
     }
 
+    public static function compileHandler($handler)
+    {
+        if (empty($handler)) {
+            return [];
+        }
+
+        if ($handler instanceof \Closure) {
+            $actor = $handler;
+        } elseif (is_array($handler) || (is_string($handler) && strpos($handler, '@') > 0)) {
+            // [ \Path\To\Class:class, "method" ] or 'Class@method'
+
+            if (is_string($handler)) {
+                list($class, $method) = self::explode($handler, [null, '__invoke'], '@');
+            } else {
+                list($class, $method) = $handler;
+            }
+
+            $i_class = new $class();
+
+            $actor = [ $i_class, $method ];
+
+        } elseif (strpos($handler, '::')) {
+            // static method
+            list($class, $method) = self::explode($handler, [null, ''], '::');
+
+            $actor = [ $class, $method ];
+
+        }  else {
+            // function
+            $actor = $handler;
+        }
+
+        return $actor;
+    }
+
+    /**
+     * Выполняет explode строки роута с учетом дефолтной маски
+     * Заменяет list($a, $b) = explode(separator, string) с дефолтными значениями элементов
+     * Хотел назвать это replace_array_callback(), но передумал
+     *
+     * @param $income
+     * @param array $default
+     * @param string $separator
+     * @return array
+     */
+    private static function explode($income, array $default = [ null, '__invoke' ], string $separator = '@'): array
+    {
+        return array_map(static function($first, $second) {
+            return empty($second) ? $first : $second;
+        }, $default, \explode($separator, $income));
+    }
+
 
 
 }

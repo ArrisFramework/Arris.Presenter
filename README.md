@@ -14,6 +14,7 @@ $t = new \Arris\Presenter\Template(smarty_options: [], template_options: [], log
 - `file` or `source` - глобальный файл шаблона, устанавливаемый при инициализации (null);
 - `cleanup_extra_eol` - убирать ли лишние переводы строк при рендере (true);
 - `hook_disable_named_params` (false) - отключить ли именованные параметры для хуков?
+- `ignore_undefined_hooks` (true) - игнорировать неопределенные хуки: если метод хука не найден/не определен - возвращаем пустую строку как результат хука
 
 Отключение именованных параметров для хуков позволяет избежать ошибки вида `"Uncaught Error: Unknown named parameter $foo"`
 Она возникнет в PHP8, если запись хука будет вида:

@@ -13,6 +13,12 @@ interface HooksInterface
 
     public function registerHook($hook, $hook_callback, int $priority = 0):Hooks;
 
+    /**
+     * @TODO
+     *
+     * @param callable $callback
+     * @return Hooks
+     */
     public function setAutoResolveMethod(callable $callback):Hooks;
 
     public function run(array $params, \Smarty_Internal_Template $smarty_Internal_Template):string;
