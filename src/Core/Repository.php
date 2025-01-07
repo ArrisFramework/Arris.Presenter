@@ -134,7 +134,7 @@ class Repository implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
             return $this->options[$key];
         }
 
-        return $this->options;
+        return $default;
     }
 
     /**
