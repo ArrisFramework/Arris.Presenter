@@ -729,7 +729,10 @@ class Template implements TemplateInterface
             }
         } // switch
 
-        $this->hooks_engine->disableNamedParams($this->template_options['hook_disable_named_params']);
+        //@todo: почему это здесь???
+        if ($this->template_options->has('hook_disable_named_params')) {
+            $this->hooks_engine->disableNamedParams($this->template_options->get('hook_disable_named_params'));
+        }
 
         if ($need_render) {
             $content = $this->renderTemplate();
