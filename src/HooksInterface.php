@@ -11,7 +11,9 @@ interface HooksInterface
 
     public function disableNamedParams(bool $disable = false):Hooks;
 
-    public function registerHook($hook, $hook_callback, int $priority = 0):Hooks;
+    public function registerHook($hook_name, $hook_callback, int $priority = null):Hooks;
+
+    public function registerHooks(array $hooks = []):Hooks;
 
     /**
      * @TODO
@@ -22,4 +24,6 @@ interface HooksInterface
     public function setAutoResolveMethod(callable $callback):Hooks;
 
     public function run(array $params, \Smarty_Internal_Template $smarty_Internal_Template):string;
+
+
 }

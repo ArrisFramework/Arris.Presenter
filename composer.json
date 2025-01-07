@@ -1,6 +1,6 @@
 {
-    "name": "karelwintersky/arris.template",
-    "description": "Template class for Arris µ-framework, based on Smarty",
+    "name": "karelwintersky/arris.presenter",
+    "description": "Presenter for Arris µ-framework, including lazy wrapper over Smarty",
     "type": "library",
     "license": "MIT",
     "authors": [
@@ -14,7 +14,7 @@
         "ext-json": "*",
         "ext-mbstring": "*",
         "smarty/smarty": "v4.5.3",
-        "karelwintersky/arris.entity": "^0.9.0",
+        "karelwintersky/arris.entity": "^0.9",
         "psr/log": "*"
 
     },
