@@ -8,14 +8,26 @@ use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
 /**
- * @todo: возможно, ВСЕ определения хуков должны наследоваться от некого абстрактного класса AbstractHook ?
+ * Возможно, ВСЕ определения хуков должны наследоваться от некого абстрактного класса AbstractHook ?
  * Тогда мы сможем дать хуку список обязательных параметров...
  *
- * See also: https://github.com/esemve/Hook
+ * See also:
+ * https://github.com/esemve/Hook
  *
  */
 class Hooks implements HooksInterface
 {
+    /**
+     * Статичные переменные, содержащие данные о текущем обрабатываемом хуке
+     */
+    public static string $current_hook_name = '';
+
+    public static array $current_hook_chain_results = [];
+
+    public static $current_hook_callback = null;
+
+    public static int $current_hook_priority = 0;
+
     /**
      * Логгер
      * @var LoggerInterface|NullLogger
@@ -45,6 +57,7 @@ class Hooks implements HooksInterface
     public bool $ignore_undefined_hooks = true;
 
     /**
+     * @todo
      * Метод для авторезолва ненайденных методов хуков
      *
      * @var callable
@@ -82,14 +95,42 @@ class Hooks implements HooksInterface
      *
      * Хуки должны вызываться по списку приоритетов, от максимума к минимуму
      *
-     * @param $hook
+     * @param $hook_name
      * @param $hook_callback
-     * @param int $priority
+     * @param $priority
      * @return void
      */
-    public function registerHook($hook, $hook_callback, int $priority = 0):Hooks
+    public function registerHook($hook_name, $hook_callback, $priority = null):Hooks
     {
-        $this->hooks[ $hook ] = $hook_callback;
+        if (is_null($priority)) {
+            $this->hooks[ $hook_name ][] = $hook_callback;
+        } else {
+            $this->hooks[ $hook_name ][ $priority ] = $hook_callback;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Регистрирует массив хуков
+     *
+     * @param array $hooks
+     * 0|name - name
+     * 1|callback - callback
+     * 2|priority (100) - priority
+     * @return Hooks
+     */
+    public function registerHooks(array $hooks = []):Hooks
+    {
+        foreach ($hooks as $definition) {
+            if (count($definition) < 2) continue;
+
+            $name = array_key_exists('name', $definition) ? $definition['name'] : $definition[0];
+            $callback = array_key_exists('callback', $definition) ? $definition['callback'] : $definition[1];
+            $priority = array_key_exists('priority', $definition) ? $definition['priority'] : ($definition[2] ?? 0);
+
+            $this->registerHook($name, $callback, $priority);
+        }
 
         return $this;
     }
@@ -125,7 +166,10 @@ class Hooks implements HooksInterface
         $hook_name = $params['run'];
         unset($params['run']);
 
-        if (is_null($hook = $this->getHookCallback($hook_name))) {
+        $hook_assign = array_key_exists('assign', $params) ? $params['assign'] : false;
+        unset($params['assign']);
+
+        if (empty($hooks = $this->getHookCallback($hook_name))) {
             if (!$this->ignore_undefined_hooks) {
                 $this->logger->warning("Hook: {$hook_name} not defined");
                 trigger_error("Hook: {$hook_name} not defined", E_USER_WARNING);
@@ -133,28 +177,37 @@ class Hooks implements HooksInterface
             return '';
         }
 
-        $hook_assign = array_key_exists('assign', $params) ? $params['assign'] : false;
-        unset($params['assign']);
+        krsort($hooks);
 
-        //@todo: функциональность заложена, но ПОКА ЧТО $hook всегда callable, а не массив!
-        /*if (is_array($hook)) {
-            $hook_execute_results = [];
+        Hooks::$current_hook_name = $hook_name;
 
-            foreach ($hook as $callback) {
+        //@todo: функциональность ТЕСТИРУЕТСЯ: $hook - массив коллбэков
+        if (is_array($hooks)) {
+            Hooks::$current_hook_chain_results = [];
+            // $hook_execute_results = [];
+
+            foreach ($hooks as $priority => $callback) {
+                Hooks::$current_hook_callback = $callback;
+                Hooks::$current_hook_priority = $priority;
+
                 $result = $this->executeHook($callback, $params);
 
                 if ($hook_assign) {
                     $smarty_Internal_Template->assign($hook_assign, $result);
                 } else {
-                    $hook_execute_results[] = $result;
+                    // $hook_execute_results[] = $result;
+                    Hooks::$current_hook_chain_results[] = $result;
                 }
             }
 
             // склеиваем строки результатов нескольких хуков
-            return implode('', $hook_execute_results);
-        }*/
+            $hook_execute_results = Hooks::$current_hook_chain_results;
+            Hooks::$current_hook_chain_results = [];
 
-        $result = $this->executeHook($hook, $params);
+            return implode('', $hook_execute_results);
+        }
+
+        $result = $this->executeHook($hooks, $params);
 
         if ($hook_assign) {
             $smarty_Internal_Template->assign($hook_assign, $result);
@@ -185,16 +238,14 @@ class Hooks implements HooksInterface
     }
 
     /**
-     * Возвращает метод-исполнитель хука по имени
-     *
-     * @todo: на самом деле должен возвращать массив исполнителей (с учетом приоритетов)
+     * Возвращает массив исполнителей (с учетом приоритетов) хука по имени
      *
      * @param string $name
      * @return callable|null
      */
     private function getHookCallback(string $name)
     {
-        $hook = array_key_exists($name, $this->hooks) ? $this->hooks[ $name ] : null;
+        $hook = array_key_exists($name, $this->hooks) ? $this->hooks[ $name ] : [];
         return $hook;
     }
 

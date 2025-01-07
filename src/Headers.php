@@ -2,6 +2,8 @@
 
 namespace Arris\Presenter;
 
+use Psr\Log\LoggerInterface;
+
 /**
  * from: https://packagist.org/packages/lmc/http-constants
  */
@@ -1334,7 +1336,10 @@ final class Headers implements HeadersInterface
 
     public bool $need_send_headers;
 
-    public function __construct()
+    /**
+     * @param LoggerInterface|null $logger
+     */
+    public function __construct(LoggerInterface $logger = null)
     {
         $this->current_headers = [];
         $this->need_send_headers = true;

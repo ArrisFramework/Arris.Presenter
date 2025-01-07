@@ -193,7 +193,7 @@ class Template implements TemplateInterface
      * @param array $template_options
      * @param $logger
      */
-    public function __construct(array $smarty_options = [], array $template_options = [], $logger = null)
+    public function __construct(array $template_options = [], array $smarty_options = [], $logger = null)
     {
         $this->logger = $logger ?? new NullLogger();
 
@@ -371,7 +371,7 @@ class Template implements TemplateInterface
         return $this;
     }
 
-    public function registerHook($hook, $hook_callback = null, int $priority = 0):Template
+    public function registerHook($hook, $hook_callback = null, int $priority = null):Template
     {
         if (is_array($hook)) {
             foreach ($hook as $name => $callback) {
@@ -666,8 +666,6 @@ class Template implements TemplateInterface
     {
         $content = '';
         $need_render = false;
-
-        // var_dump($this->template_options);die;
 
         switch ($this->render_type) {
             case self::CONTENT_TYPE_REDIRECT: {
