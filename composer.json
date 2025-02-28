@@ -14,7 +14,7 @@
         "ext-json": "*",
         "ext-mbstring": "*",
         "smarty/smarty": "v4.5.3",
-        "karelwintersky/arris.entity": "^0.9",
+        "karelwintersky/arris.entity": "^1",
         "psr/log": "*"
 
     },
