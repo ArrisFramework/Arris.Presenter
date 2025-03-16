@@ -673,7 +673,7 @@ class Template implements TemplateInterface
                 break;
             }
             case self::CONTENT_TYPE_JSON: {
-                $content = \json_encode($this->assigned_json->getAll(), TemplateInterface::JSON_ENCODE_FLAGS);
+                $content = \json_encode($this->assigned_json->toArray(), TemplateInterface::JSON_ENCODE_FLAGS);
                 $this->addHeader(Headers::CONTENT_TYPE,'application/json; charset=utf-8');
                 break;
             }
