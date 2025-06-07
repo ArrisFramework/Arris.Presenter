@@ -187,7 +187,7 @@ class Template implements TemplateInterface
     public Hooks $hooks_engine;
 
     /**
-     * Constructor
+     * Конструктор презентера
      *
      * @param array $smarty_options
      * @param array $template_options
@@ -508,7 +508,7 @@ class Template implements TemplateInterface
     }
 
     /**
-     * Устанавливает файл глобального шаблона
+     * Устанавливает файл шаблона
      *
      * @param string $filename
      * @return $this
@@ -516,6 +516,22 @@ class Template implements TemplateInterface
     public function setTemplate(string $filename = ''): Template
     {
         $this->template_file = empty($filename) ? '' : $filename;
+        return $this;
+    }
+
+    /**
+     * Устанавливает шаблон из строки, аналогично вызову `setTemplate('string:' . $data)`
+     *
+     * $templateContent = 'Привет, {$name}!';
+     * ->setTemplate('string:' . $templateContent)
+     * Важно: строка не кэшируется
+     *
+     * @param string $content
+     * @return $this
+     */
+    public function setTemplateContent(string $content):Template
+    {
+        $this->template_file = 'string:' . $content;
         return $this;
     }
 

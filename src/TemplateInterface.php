@@ -42,8 +42,21 @@ interface TemplateInterface
 
     public function registerHook($hook, $hook_callback = null, int $priority = 0):Template;
 
-    /* установка шаблона */
-    public function setTemplate(string $filename = ''):Template;
+    /**
+     * Устанавливает файл шаблона
+     *
+     * @param string $filename
+     * @return $this
+     */
+    public function setTemplate(string $filename = ''): Template;
+
+    /**
+     * Устанавливает шаблон из строки, аналогично вызову `setTemplate('string:' . $data)`
+     *
+     * @param string $content
+     * @return $this
+     */
+    public function setTemplateContent(string $content):Template;
 
     /* assign значений */
     public function assign($key, $value = null): void;
