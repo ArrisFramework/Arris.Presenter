@@ -8,7 +8,9 @@ interface HeadersInterface
 {
     public function __construct(LoggerInterface $logger = null);
 
-    public function add(string $header_name = '', string $header_content = 'text/html; charset=utf-8', bool $header_replace = true, int $header_code = 0):Headers;
+    public function add(string $name = '', string $content = 'text/html; charset=utf-8', bool $replace = true, int $code = 0):Headers;
+
+    public function has(string $name): bool;
 
     public function send():bool;
 

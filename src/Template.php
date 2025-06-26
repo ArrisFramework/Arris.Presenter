@@ -9,6 +9,8 @@ use Psr\Log\NullLogger;
 use Smarty;
 use SmartyException;
 use Arris\Entity\Result;
+use function json_encode;
+use function preg_replace;
 
 class Template implements TemplateInterface
 {
@@ -36,6 +38,7 @@ class Template implements TemplateInterface
     const CONTENT_TYPE_JS_RAW = 'js-raw'; // 'application/javascript'
 
     const CONTENT_TYPE_RAW  = 'raw';
+    const CONTENT_TYPE_RAW_HTML = 'raw_html';
 
     const CONTENT_TYPE_RESULT = 'result';
 
@@ -60,6 +63,7 @@ class Template implements TemplateInterface
         self::CONTENT_TYPE_JS_RAW   =>  "Content-Type: text/javascript;charset=utf-8",
 
         self::CONTENT_TYPE_RAW      =>  "Content-Type: text/html; charset=utf-8",
+        self::CONTENT_TYPE_RAW_HTML =>  "",
 
         self::CONTENT_TYPE_RESULT   =>  'Content-Type: application/json; charset=utf-8',
 
@@ -609,6 +613,12 @@ class Template implements TemplateInterface
         $this->setRenderType( Template::CONTENT_TYPE_RAW );
     }
 
+    public function assignRawHTML(string $html):void
+    {
+        $this->assigned_raw_content = $html;
+        $this->setRenderType( Template::CONTENT_TYPE_RAW );
+    }
+
     /**
      * Добавляет значения в JSON-набор данных
      *
@@ -689,21 +699,25 @@ class Template implements TemplateInterface
                 break;
             }
             case self::CONTENT_TYPE_JSON: {
-                $content = \json_encode($this->assigned_json->toArray(), TemplateInterface::JSON_ENCODE_FLAGS);
+                $content = json_encode($this->assigned_json->toArray(), TemplateInterface::JSON_ENCODE_FLAGS);
                 $this->addHeader(Headers::CONTENT_TYPE,'application/json; charset=utf-8');
                 break;
             }
             case self::CONTENT_TYPE_JSON_RAW: {
-                $content = \json_encode($this->assigned_json->getData(), TemplateInterface::JSON_ENCODE_FLAGS);
+                $content = json_encode($this->assigned_json->getData(), TemplateInterface::JSON_ENCODE_FLAGS);
                 $this->addHeader(Headers::CONTENT_TYPE,'application/json; charset=utf-8');
                 break;
             }
             case self::CONTENT_TYPE_RESULT: {
-                $content = \json_encode($this->assigned_result, TemplateInterface::JSON_ENCODE_FLAGS);
+                $content = json_encode($this->assigned_result, TemplateInterface::JSON_ENCODE_FLAGS);
                 $this->addHeader(Headers::CONTENT_TYPE,'application/json; charset=utf-8');
                 break;
             }
             case self::CONTENT_TYPE_RAW: {
+                $content = $this->assigned_raw_content;
+                break;
+            }
+            case self::CONTENT_TYPE_RAW_HTML: {
                 $content = $this->assigned_raw_content;
                 $this->addHeader(Headers::CONTENT_TYPE, 'text/html; charset=utf-8');
                 break;
@@ -788,11 +802,6 @@ class Template implements TemplateInterface
         }
 
         /*
-        if (empty($this->template_file)) {
-            $this->logger->debug("Given empty template");
-            return '';
-        }
-
         if (!is_readable( $full_path_to_template_file = rtrim($this->smarty->getTemplateDir(), '/') . '/' . $this->template_file)) {
             $this->logger->debug("Template file is unreadable", [ $full_path_to_template_file ]);
         }
@@ -805,7 +814,7 @@ class Template implements TemplateInterface
 
         // удаляем лишние переводы строк
         if ($this->template_options->get('cleanup_extra_eol')) {
-            $content = \preg_replace('/^\h*\v+/m', '', $content);
+            $content = preg_replace('/^\h*\v+/m', '', $content);
         }
 
         return $content;
@@ -834,15 +843,15 @@ class Template implements TemplateInterface
     /**
      * Добавляет хедер
      *
-     * @param string $header_name
-     * @param string $header_content
-     * @param bool $header_replace
-     * @param int $header_code
+     * @param string $name
+     * @param string $content
+     * @param bool $replace
+     * @param int $code
      * @return $this
      */
-    public function addHeader(string $header_name = '', string $header_content = 'text/html; charset=utf-8', bool $header_replace = true, int $header_code = 0):Template
+    public function addHeader(string $name = '', string $content = '', bool $replace = true, int $code = 0):Template
     {
-        $this->headers->add($header_name, $header_content, $header_replace, $header_code);
+        $this->headers->add($name, $content, $replace, $code);
         return $this;
     }
 

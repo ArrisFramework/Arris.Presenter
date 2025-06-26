@@ -1348,28 +1348,45 @@ final class Headers implements HeadersInterface
     /**
      * Добавляет хедер
      *
-     * @param string $header_name
-     * @param string $header_content
-     * @param bool $header_replace
-     * @param int $header_code
+     * @param string $name
+     * @param string $content
+     * @param bool $replace
+     * @param int $code
      * @return $this
      */
-    public function add(string $header_name = '', string $header_content = 'text/html; charset=utf-8', bool $header_replace = true, int $header_code = 0):Headers
+    public function add(string $name = '', string $content = '', bool $replace = true, int $code = 0):Headers
     {
-        if (empty($header_name)) {
+        if (empty($name) && empty($content)) {
             return $this;
         }
 
         $this->current_headers[] = [
-            'name'      =>  $header_name,
-            'content'   =>  $header_content,
-            'replace'   =>  $header_replace,
-            'code'      =>  $header_code
+            'name'      =>  $name,
+            'content'   =>  $content,
+            'value'     =>  empty($name) ? $content : "{$name}: {$content}",
+            'replace'   =>  $replace,
+            'code'      =>  $code
         ];
 
         $this->need_send_headers = true;
 
         return $this;
+    }
+
+    /**
+     * Проверяет наличие хедера по имени
+     *
+     * @param string $name
+     * @return bool
+     */
+    public function has(string $name): bool
+    {
+        return !empty(array_filter(
+            $this->current_headers,
+            function ($header) use ($name) {
+                return strcasecmp($header['name'], $name) === 0;
+            }
+        ));
     }
 
     /**
@@ -1383,26 +1400,18 @@ final class Headers implements HeadersInterface
             return false;
         }
 
-        $set = [];
         foreach ($this->current_headers as $header) {
-            $_h
-                = $header['name'] === self::_
-                ? $header['content']
-                : $header['name'] . ': ' . $header['content'];
-            $_r = $header['replace'] ?: true;
-            $_c = $header['code'] ?: 0;
+            header(
+                $header['value'],
+                $header['replace'] ?: true,
+                $header['code'] ?: 0
+            );
+        }
 
-            $set[] = [
-                'header'    =>  $_h,
-                'replace'   =>  $_r,
-                'code'      =>  $_c
-            ];
-        }
-        foreach ($set as $header) {
-            \header($header['header'], $header['replace'], $header['code']);
-        }
         return true;
     }
+
+
 
     /**
      * Посылает HTTP Response Code

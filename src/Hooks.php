@@ -97,8 +97,8 @@ class Hooks implements HooksInterface
      *
      * @param $hook_name
      * @param $hook_callback
-     * @param $priority
-     * @return void
+     * @param null $priority
+     * @return Hooks
      */
     public function registerHook($hook_name, $hook_callback, $priority = null):Hooks
     {

@@ -62,6 +62,7 @@ interface TemplateInterface
     public function assign($key, $value = null): void;
 
     public function assignRAW(string $html):void;
+    public function assignRawHTML(string $html):void;
 
     public function assignJSON(array $json): void;
 
@@ -87,7 +88,7 @@ interface TemplateInterface
     public function makeRedirect(string $uri = null, int $code = null, bool $replace_headers = true);
 
     /* хедеры */
-    public function addHeader(string $header_name = '', string $header_content = 'text/html; charset=utf-8', bool $header_replace = true, int $header_code = 0):Template;
+    public function addHeader(string $name = '', string $content = 'text/html; charset=utf-8', bool $replace = true, int $code = 0):Template;
 
     /* ... */
     //@todo: работа с Page title + breadcumbs (стэк)
