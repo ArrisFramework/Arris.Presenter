@@ -17,4 +17,6 @@ interface HeadersInterface
     public function sendHttpCode($code):void;
 
     public function isEmpty():bool;
+
+    public function clean();
 }

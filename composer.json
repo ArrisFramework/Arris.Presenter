@@ -10,12 +10,12 @@
         }
     ],
     "require": {
-        "php": "^7.4 || 8.*",
+        "php": "^7.4",
         "ext-json": "*",
         "ext-mbstring": "*",
         "smarty/smarty": "v4.5.3",
         "karelwintersky/arris.entity": "^1",
-        "psr/log": "*"
+        "psr/log": "^1"
 
     },
     "autoload": {

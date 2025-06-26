@@ -73,8 +73,13 @@ class Hooks implements HooksInterface
      */
     public function __construct(Repository $template_options, LoggerInterface $logger = null)
     {
-        $this->disable_named_params = (bool)($template_options['hook_disable_named_params'] ?? false);
-        $this->ignore_undefined_hooks = (bool)($template_options['ignore_undefined_hooks'] ?? true);
+        if (isset($template_options['hook_disable_named_params'])) {
+            $this->disable_named_params = (bool)$template_options['hook_disable_named_params'];
+        }
+
+        if (isset($template_options['ignore_undefined_hooks'])) {
+            $this->ignore_undefined_hooks = (bool)$template_options['ignore_undefined_hooks'];
+        }
 
         $this->logger = $logger ?? new NullLogger();
     }
@@ -245,8 +250,7 @@ class Hooks implements HooksInterface
      */
     private function getHookCallback(string $name)
     {
-        $hook = array_key_exists($name, $this->hooks) ? $this->hooks[ $name ] : [];
-        return $hook;
+        return array_key_exists($name, $this->hooks) ? $this->hooks[ $name ] : [];
     }
 
 }

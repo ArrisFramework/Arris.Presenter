@@ -20,8 +20,8 @@ $t
     ->registerHook('pre_content', function ($foo = 'aaa'){
         return "Callback -> pre content hook with arg: {$foo}"  . PHP_EOL;
     })
-    ->registerHook('post_content', function (){
-        return "Post content" . PHP_EOL;
+    ->registerHook('post_content', function ($id = 5){
+        return "Post content {$id}" . PHP_EOL;
     });
 ;
 

@@ -4,6 +4,6 @@ Outer template + include render <br>
 
 Global content: {$content}
 
-{hook run='post_content'}
+{hook run='post_content' id=12}
 --------------------------
 
