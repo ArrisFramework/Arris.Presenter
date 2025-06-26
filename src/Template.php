@@ -759,7 +759,9 @@ class Template implements TemplateInterface
             }
         } // switch
 
-        //@todo: почему это здесь???
+        // Судя по названию, должно отключать "именованные параметры" у хуков. Но в имеющихся тестах я не вижу никакой
+        // зависимости от этого параметра. Он что включен, что выключен - поведение не меняется.
+        // Смутно припоминаю, что была проблема, но судя по всему, её больше нет.
         if ($this->template_options->has('hook_disable_named_params')) {
             $this->hooks_engine->disableNamedParams($this->template_options->get('hook_disable_named_params'));
         }
@@ -768,7 +770,7 @@ class Template implements TemplateInterface
             $content = $this->renderTemplate();
         }
 
-        if ($need_send_headers) {
+        if ($this->headers->need_send_headers) {
             $this->headers->send();
         }
 

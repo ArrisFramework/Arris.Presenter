@@ -3,6 +3,8 @@
 namespace Arris\Presenter;
 
 use Psr\Log\LoggerInterface;
+use function array_key_exists;
+use function header;
 
 /**
  * from: https://packagist.org/packages/lmc/http-constants
@@ -1342,7 +1344,7 @@ final class Headers implements HeadersInterface
     public function __construct(LoggerInterface $logger = null)
     {
         $this->current_headers = [];
-        $this->need_send_headers = true;
+        $this->need_send_headers = false;
     }
 
     /**
@@ -1411,6 +1413,17 @@ final class Headers implements HeadersInterface
         return true;
     }
 
+    /**
+     * Очищает пул заголовков
+     *
+     * @return void
+     */
+    public function clean()
+    {
+        $this->current_headers = [];
+        $this->need_send_headers = false;
+    }
+
 
 
     /**
@@ -1421,13 +1434,13 @@ final class Headers implements HeadersInterface
      */
     public function sendHttpCode($code):void
     {
-        if (!\array_key_exists($code, self::HTTP_CODES)) {
+        if (!array_key_exists($code, self::HTTP_CODES)) {
             $code = 200;
         }
 
         $protocol = ($_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0');
 
-        \header($protocol . ' ' . $code . ' ' . self::HTTP_CODES[ $code ]);
+        header($protocol . ' ' . $code . ' ' . self::HTTP_CODES[ $code ]);
     }
 
     /**
