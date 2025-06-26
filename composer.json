@@ -15,7 +15,7 @@
         "ext-mbstring": "*",
         "smarty/smarty": "v4.5.3",
         "karelwintersky/arris.entity": "^1",
-        "psr/log": "^1"
+        "psr/log": "*"
 
     },
     "autoload": {
