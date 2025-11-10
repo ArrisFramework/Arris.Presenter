@@ -688,14 +688,14 @@ class Template implements TemplateInterface
      * @return string|null
      * @throws SmartyException
      */
-    public function render(bool $need_send_headers = false, bool $clean = false): ?string
+    public function render(bool $need_send_headers = true, bool $clean = false): ?string
     {
         $content = '';
         $need_render = false;
 
         switch ($this->render_type) {
             case self::CONTENT_TYPE_REDIRECT: {
-                $this->headers->need_send_headers = false;
+                $this->headers->headers_present = false;
                 break;
             }
             case self::CONTENT_TYPE_JSON: {
@@ -724,7 +724,6 @@ class Template implements TemplateInterface
             }
             case self::CONTENT_TYPE_JS: {
                 $need_render = true;
-                $need_send_headers = true;
                 $this->addHeader(Headers::CONTENT_TYPE, 'text/javascript;charset=utf-8');
                 break;
             }
@@ -770,7 +769,7 @@ class Template implements TemplateInterface
             $content = $this->renderTemplate();
         }
 
-        if ($this->headers->need_send_headers) {
+        if ($this->headers->headers_present && $need_send_headers) {
             $this->headers->send();
         }
 

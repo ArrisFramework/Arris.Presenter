@@ -1336,7 +1336,7 @@ final class Headers implements HeadersInterface
      */
     public array $current_headers;
 
-    public bool $need_send_headers;
+    public bool $headers_present;
 
     /**
      * @param LoggerInterface|null $logger
@@ -1344,7 +1344,7 @@ final class Headers implements HeadersInterface
     public function __construct(LoggerInterface $logger = null)
     {
         $this->current_headers = [];
-        $this->need_send_headers = false;
+        $this->headers_present = false;
     }
 
     /**
@@ -1370,7 +1370,7 @@ final class Headers implements HeadersInterface
             'code'      =>  $code
         ];
 
-        $this->need_send_headers = true;
+        $this->headers_present = true;
 
         return $this;
     }
@@ -1398,7 +1398,7 @@ final class Headers implements HeadersInterface
      */
     public function send():bool
     {
-        if (false === $this->need_send_headers) {
+        if (false === $this->headers_present) {
             return false;
         }
 
@@ -1421,7 +1421,7 @@ final class Headers implements HeadersInterface
     public function clean()
     {
         $this->current_headers = [];
-        $this->need_send_headers = false;
+        $this->headers_present = false;
     }
 
 
