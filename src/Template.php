@@ -375,7 +375,7 @@ class Template implements TemplateInterface
         return $this;
     }
 
-    public function registerHook($hook, $hook_callback = null, int $priority = null):Template
+    public function registerHook($hook, $hook_callback = null, ?int $priority = null):Template
     {
         if (is_array($hook)) {
             foreach ($hook as $name => $callback) {
@@ -744,12 +744,12 @@ class Template implements TemplateInterface
                 break;
             }
             case self::CONTENT_TYPE_404: {
-                $this->addHeader(Headers::_, Headers::HTTP_CODES[404]);
+                $this->addHeader(Headers::_, code: 404);
                 $need_render = true;
                 break;
             }
             case self::CONTENT_TYPE_500: {
-                $this->addHeader(Headers::_, Headers::HTTP_CODES[500]);
+                $this->addHeader(Headers::_, code: 500);
                 $need_render = true;
                 break;
             }

@@ -1362,10 +1362,18 @@ final class Headers implements HeadersInterface
             return $this;
         }
 
+        // Для HTTP-статусов (когда name пустой)
+        if (empty($name) && $code > 0) {
+            $protocol = $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0';
+            $value = $protocol . ' ' . $code . ' ' . $content;
+        } else {
+            $value = empty($name) ? $content : "{$name}: {$content}";
+        }
+
         $this->current_headers[] = [
             'name'      =>  $name,
             'content'   =>  $content,
-            'value'     =>  empty($name) ? $content : "{$name}: {$content}",
+            'value'     =>  $value,
             'replace'   =>  $replace,
             'code'      =>  $code
         ];

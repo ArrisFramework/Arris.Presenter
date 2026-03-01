@@ -40,7 +40,7 @@ interface TemplateInterface
 
     public function registerClass(string $name, string $implementation):Template;
 
-    public function registerHook($hook, $hook_callback = null, int $priority = 0):Template;
+    public function registerHook($hook, $hook_callback = null, ?int $priority = null):Template;
 
     /**
      * Устанавливает файл шаблона
