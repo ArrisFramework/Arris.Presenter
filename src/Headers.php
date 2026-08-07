@@ -1414,7 +1414,7 @@ final class Headers implements HeadersInterface
         foreach ($this->current_headers as $header) {
             header(
                 $header['value'],
-                $header['replace'] ?: true,
+                $header['replace'],
                 $header['code'] ?: 0
             );
         }
