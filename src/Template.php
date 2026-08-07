@@ -410,10 +410,6 @@ class Template implements TemplateInterface
             $this->setTemplate($template_options['source']);
         }
 
-        if (\array_key_exists('source', $template_options)) {
-            $this->setTemplate($template_options['source']);
-        }
-
         // удалять ли лишние переводы строк при рендере?
         $this->setEngineOption(
             'cleanup_extra_eol',
@@ -829,10 +825,10 @@ class Template implements TemplateInterface
     {
         if (\is_array($json)) {
             $this->assigned_json->setData($json);
-        } elseif (\is_object($json)) {
-            $this->assigned_json->setData( (array)$json);
         } elseif ($json instanceof Result) {
             $this->assigned_json = $json;
+        } elseif (\is_object($json)) {
+            $this->assigned_json->setData( (array)$json);
         }
         $this->setRenderType( Template::CONTENT_TYPE_JSON );
     }
