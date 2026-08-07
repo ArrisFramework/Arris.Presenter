@@ -154,6 +154,8 @@ class Template implements TemplateInterface
 
     public Breadcrumbs $breadcrumbs;
 
+    public Meta $meta;
+
     public Hooks $hooks_engine;
 
     /**
@@ -321,6 +323,7 @@ class Template implements TemplateInterface
 
         $clone->headers      = new Headers($this->logger);
         $clone->breadcrumbs  = new Breadcrumbs($this->logger);
+        $clone->meta         = new Meta();
         $clone->hooks_engine = clone $this->hooks_engine;
 
         $clone->assigned_template_vars = [];
@@ -382,6 +385,7 @@ class Template implements TemplateInterface
 
         $this->headers      = new Headers($this->logger);
         $this->breadcrumbs  = new Breadcrumbs($this->logger);
+        $this->meta         = new Meta();
         $this->hooks_engine = new Hooks($this->template_options, $this->logger);
 
         foreach (self::$default_options['plugins'] as $plugin) {
