@@ -3,6 +3,8 @@
 namespace Arris\Presenter;
 
 use Arris\Entity\Result;
+use Arris\Presenter\System\ContentType;
+use Arris\Presenter\System\TemplateDefaultsBuilder;
 
 interface TemplateInterface
 {
@@ -15,10 +17,41 @@ interface TemplateInterface
     const INDEX_PLUGIN_CACHEABLE = 3;
     const INDEX_PLUGIN_CACHEATTR = 4;
 
+    /**
+     * Типы плагинов для Smarty
+     */
+    const PLUGIN_FUNCTION         = 'function';
+    const PLUGIN_BLOCK            = 'block';
+    const PLUGIN_COMPILER         = 'compiler';
+    const PLUGIN_MODIFIER         = 'modifier';
+    const PLUGIN_MODIFIERCOMPILER = 'modifiercompiler';
+
+    /**
+     * JSON-флаги
+     */
     const JSON_ENCODE_FLAGS = JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_NUMERIC_CHECK | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR;
 
     /* Конструктор презентера */
     public function __construct(array $template_options = [], array $smarty_options = [], $logger = null);
+
+    /* Статические дефолты и фабрики */
+    public static function setDefaults(array $config = []): TemplateDefaultsBuilder;
+
+    public static function applyOption(string $name, mixed $value): void;
+
+    public static function addPlugin(string $type, string $name, $callback, bool $cacheable = false, $cache_attr = null): void;
+
+    public static function addClass(string $name, string $implementation): void;
+
+    public static function addHook(string $hook_name, $hook_callback): void;
+
+    public static function make(array $options = [], $logger = null): static;
+
+    public function fork(): static;
+
+    public function spawn(): static;
+
+    public function renderToString(): string;
 
     /* Опции презентера */
     public function setEngineOption($key_name, $key_value = null):Template;
@@ -36,7 +69,7 @@ interface TemplateInterface
 
     /* регистраторы расширений */
 
-    public function registerPlugin(string $type, string $name, $callback, bool $cacheable = true, $cache_attr = null):Template;
+    public function registerPlugin(string $type, string $name, $callback, bool $cacheable = false, $cache_attr = null):Template;
 
     public function registerClass(string $name, string $implementation):Template;
 
@@ -72,16 +105,16 @@ interface TemplateInterface
 
 
     /* рендер*/
-    public function setRenderType(string $type): void;
+    public function setRenderType(ContentType|string $type): void;
 
-    public function render(): ?string;
+    public function render(bool $send_headers = false, bool $clean = false): ?string;
 
     public function clean(bool $clear_cache = true):bool;
 
     public function getAssignedTemplateVars($varName = null);
 
     /* редирект */
-    public function setRedirect(string $uri = '/', int $code = 200):Template;
+    public function setRedirect(string $uri = '/', int $code = 301):Template;
 
     public function isRedirect():bool;
 

@@ -4,6 +4,8 @@ namespace Arris\Presenter;
 
 use Arris\Presenter\Core\Helper;
 use Arris\Presenter\Core\Repository;
+use Arris\Presenter\System\ContentType;
+use Arris\Presenter\System\TemplateDefaultsBuilder;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Smarty;
@@ -15,63 +17,29 @@ use function preg_replace;
 class Template implements TemplateInterface
 {
     /**
-     * Типы плагинов для Smarty
+     * Типы данных для рендера.
+     * Алиасы на кейсы enum ContentType (Arris\Presenter\System) для обратной совместимости.
      */
-    const PLUGIN_FUNCTION         = 'function';
-    const PLUGIN_BLOCK            = 'block';
-    const PLUGIN_COMPILER         = 'compiler';
-    const PLUGIN_MODIFIER         = 'modifier';
-    const PLUGIN_MODIFIERCOMPILER = 'modifiercompiler';
+    public const CONTENT_TYPE_RSS      = ContentType::RSS;
+    public const CONTENT_TYPE_XML      = ContentType::XML;
 
-    /**
-     * Типы данных для рендера
-     */
-    const CONTENT_TYPE_RSS  = 'rss'; // RSS
-    const CONTENT_TYPE_XML  = 'xml';
+    public const CONTENT_TYPE_JSON     = ContentType::JSON;
+    public const CONTENT_TYPE_JSON_RAW = ContentType::JSON_RAW;
 
-    const CONTENT_TYPE_JSON = 'json'; // Тип шаблонных данных JSON RAW
-    const CONTENT_TYPE_JSON_RAW = 'json_raw'; // Тип шаблонных данных JSON RAW
+    public const CONTENT_TYPE_HTML     = ContentType::HTML;
 
-    const CONTENT_TYPE_HTML = 'html';
+    public const CONTENT_TYPE_JS       = ContentType::JS;
+    public const CONTENT_TYPE_JS_RAW   = ContentType::JS_RAW;
 
-    const CONTENT_TYPE_JS   = 'js'; // 'application/javascript'
-    const CONTENT_TYPE_JS_RAW = 'js-raw'; // 'application/javascript'
+    public const CONTENT_TYPE_RAW      = ContentType::RAW;
+    public const CONTENT_TYPE_RAW_HTML = ContentType::RAW_HTML;
 
-    const CONTENT_TYPE_RAW  = 'raw';
-    const CONTENT_TYPE_RAW_HTML = 'raw_html';
+    public const CONTENT_TYPE_RESULT   = ContentType::RESULT;
 
-    const CONTENT_TYPE_RESULT = 'result';
+    public const CONTENT_TYPE_REDIRECT = ContentType::REDIRECT;
 
-    const CONTENT_TYPE_REDIRECT = 'redirect';
-
-    const CONTENT_TYPE_404  = '404';
-    const CONTENT_TYPE_500  = '500';
-
-    /**
-     * Available content header types
-     */
-    const CONTENT_HEADER_TYPES = [
-        self::CONTENT_TYPE_RSS      =>  'Content-type: application/xml',
-        self::CONTENT_TYPE_XML      =>  'Content-type: application/xml',
-
-        self::CONTENT_TYPE_JSON     =>  'Content-Type: application/json; charset=utf-8',
-        self::CONTENT_TYPE_JSON_RAW =>  'Content-Type: application/json; charset=utf-8',
-
-        self::CONTENT_TYPE_HTML     =>  "Content-Type: text/html; charset=utf-8",
-
-        self::CONTENT_TYPE_JS       =>  "Content-Type: text/javascript;charset=utf-8",
-        self::CONTENT_TYPE_JS_RAW   =>  "Content-Type: text/javascript;charset=utf-8",
-
-        self::CONTENT_TYPE_RAW      =>  "Content-Type: text/html; charset=utf-8",
-        self::CONTENT_TYPE_RAW_HTML =>  "",
-
-        self::CONTENT_TYPE_RESULT   =>  'Content-Type: application/json; charset=utf-8',
-
-        self::CONTENT_TYPE_404      =>  "HTTP/1.0 404 Not Found",
-        self::CONTENT_TYPE_500      =>  "HTTP/1.0 500 Internal server error",
-
-        '_'                         =>  "Content-Type: text/html; charset=utf-8",
-    ];
+    public const CONTENT_TYPE_404      = ContentType::NOT_FOUND;
+    public const CONTENT_TYPE_500      = ContentType::INTERNAL_ERROR;
 
     /**
      * Smarty instance
@@ -90,7 +58,7 @@ class Template implements TemplateInterface
     /**
      * @var Repository
      */
-    private $template_options;
+    private Repository $template_options;
 
     /**
      * Smarty Plugins for deferred init
@@ -121,8 +89,6 @@ class Template implements TemplateInterface
      */
     public array $smarty_custom_options = [];
 
-    // public bool $smarty_custom_option_escape_html = false;
-
     /**
      * Опции редиректа
      *
@@ -144,9 +110,9 @@ class Template implements TemplateInterface
     /**
      * Тип рендера, по умолчанию - HTML
      *
-     * @var string
+     * @var ContentType
      */
-    private string $render_type = self::CONTENT_TYPE_HTML;
+    private ContentType $render_type = ContentType::HTML;
 
     /**
      * Assigned-переменные шаблона
@@ -191,28 +157,253 @@ class Template implements TemplateInterface
     public Hooks $hooks_engine;
 
     /**
-     * Конструктор презентера
+     * Ключи, уходящие в smarty-корзину при плоской маршрутизации setDefaults()/make()
+     */
+    private const SMARTY_OPTION_KEYS = [
+        'setTemplateDir',
+        'setCompileDir',
+        'setForceCompile',
+        'setConfigDir',
+    ];
+
+    /**
+     * Статические дефолты для всех инстансов.
+     * Ключи: smarty_options, template_options, plugins, classes, hooks
      *
-     * @param array $smarty_options
-     * @param array $template_options
+     * @var array
+     */
+    private static array $default_options = [
+        'smarty_options'   => [],
+        'template_options' => [],
+        'plugins'          => [],
+        'classes'          => [],
+        'hooks'            => [],
+    ];
+
+    /**
+     * Устанавливает статические дефолты (мержит в существующие).
+     * Принимает ПЛОСКИЙ массив опций: ключи setTemplateDir/setCompileDir/setForceCompile/setConfigDir
+     * маршрутизируются в smarty-корзину, ключи plugins/classes/hooks зарезервированы
+     * (для них есть addPlugin()/addClass()/addHook()), остальное - в template-корзину.
+     *
+     * Возвращает fluent-билдер для цепочки регистраций:
+     * Template::setDefaults([...])->registerClass(...)->registerHook(...)->registerPlugin(...)
+     *
+     * @param array $config
+     * @return TemplateDefaultsBuilder
+     */
+    public static function setDefaults(array $config = []): TemplateDefaultsBuilder
+    {
+        foreach ($config as $key => $value) {
+            self::applyOption($key, $value);
+        }
+
+        return new TemplateDefaultsBuilder();
+    }
+
+    /**
+     * Точечно обновляет один дефолт-опшн
+     *
+     * @param string $name
+     * @param mixed $value
+     * @return void
+     * @throws \InvalidArgumentException
+     */
+    public static function applyOption(string $name, mixed $value): void
+    {
+        if (\in_array($name, self::SMARTY_OPTION_KEYS, true)) {
+            self::$default_options['smarty_options'][ $name ] = $value;
+            return;
+        }
+
+        if (\in_array($name, ['plugins', 'classes', 'hooks'], true)) {
+            throw new \InvalidArgumentException("'{$name}' is reserved: use addPlugin()/addClass()/addHook()");
+        }
+
+        self::$default_options['template_options'][ $name ] = $value;
+    }
+
+    /**
+     * Добавляет плагин в дефолтные регистрации (аддитивно)
+     *
+     * @param string $type
+     * @param string $name
+     * @param $callback
+     * @param bool $cacheable
+     * @param null $cache_attr
+     * @return void
+     */
+    public static function addPlugin(string $type, string $name, $callback, bool $cacheable = false, $cache_attr = null): void
+    {
+        self::$default_options['plugins'][] = [ $type, $name, $callback, $cacheable, $cache_attr ];
+    }
+
+    /**
+     * Добавляет класс в дефолтные регистрации (аддитивно)
+     *
+     * @param string $name
+     * @param string $implementation
+     * @return void
+     */
+    public static function addClass(string $name, string $implementation): void
+    {
+        self::$default_options['classes'][ $name ] = $implementation;
+    }
+
+    /**
+     * Добавляет хук в дефолтные регистрации (аддитивно)
+     *
+     * @param string $hook_name
+     * @param $hook_callback
+     * @return void
+     */
+    public static function addHook(string $hook_name, $hook_callback): void
+    {
+        self::$default_options['hooks'][ $hook_name ][] = $hook_callback;
+    }
+
+    /**
+     * Фабрика: чистый инстанс на основе статических дефолтов.
+     * Принимает ПЛОСКИЙ массив опций (маршрутизация как в setDefaults()).
+     * Опции инстанса имеют приоритет над дефолтами.
+     *
+     * @param array $options
      * @param $logger
+     * @return static
+     */
+    public static function make(array $options = [], $logger = null): static
+    {
+        [$template_options, $smarty_options] = self::splitOptions($options);
+
+        return new static($template_options, $smarty_options, $logger);
+    }
+
+    /**
+     * Разделяет плоский массив опций на template/smarty корзины
+     *
+     * @param array $options
+     * @return array
+     * @throws \InvalidArgumentException
+     */
+    private static function splitOptions(array $options): array
+    {
+        $smarty_options   = [];
+        $template_options = [];
+
+        foreach ($options as $key => $value) {
+            if (\in_array($key, self::SMARTY_OPTION_KEYS, true)) {
+                $smarty_options[ $key ] = $value;
+            } elseif (\in_array($key, ['plugins', 'classes', 'hooks'], true)) {
+                throw new \InvalidArgumentException("'{$key}' is reserved: use addPlugin()/addClass()/addHook()");
+            } else {
+                $template_options[ $key ] = $value;
+            }
+        }
+
+        return [ $template_options, $smarty_options ];
+    }
+
+    /**
+     * Создает дочерний инстанс на основе текущего: наследует конфигурацию,
+     * плагины, классы и хуки, но полностью сбрасывает состояние (шаблон, assigned,
+     * хедеры, редирект, рендер-тип). Smarty реинициализируется лениво.
+     *
+     * @return static
+     */
+    public function fork(): static
+    {
+        $clone = clone $this;
+
+        $clone->smarty = null;
+
+        $clone->smarty_options   = clone $this->smarty_options;
+        $clone->template_options = clone $this->template_options;
+
+        $clone->headers      = new Headers($this->logger);
+        $clone->breadcrumbs  = new Breadcrumbs($this->logger);
+        $clone->hooks_engine = clone $this->hooks_engine;
+
+        $clone->assigned_template_vars = [];
+        $clone->assigned_raw_content   = '';
+        $clone->assigned_result        = null;
+        $clone->assigned_json          = new Result();
+
+        $clone->redirect_options = [
+            '_'     =>  false,
+            'target'=>  '',
+            'code'  =>  301
+        ];
+
+        $clone->template_file = '';
+        $clone->render_type   = ContentType::HTML;
+
+        return $clone;
+    }
+
+    /**
+     * Алиас для fork(): историческое имя метода
+     *
+     * @return static
+     */
+    public function spawn(): static
+    {
+        return $this->fork();
+    }
+
+    /**
+     * Рендер в строку без отправки хедеров и вывода
+     *
+     * @return string
+     */
+    public function renderToString(): string
+    {
+        return (string)$this->render(false);
+    }
+
+    /**
+     * Конструктор презентера.
+     * Применяет статические дефолты, затем аргументы инстанса
+     *
+     * @param array $template_options
+     * @param array $smarty_options
+     * @param $logger
+     *
+     * @throws SmartyException
      */
     public function __construct(array $template_options = [], array $smarty_options = [], $logger = null)
     {
         $this->logger = $logger ?? new NullLogger();
 
-        $this->smarty_options = new Repository($smarty_options);
+        $template_options = \array_merge(self::$default_options['template_options'], $template_options);
+        $smarty_options   = \array_merge(self::$default_options['smarty_options'],   $smarty_options);
 
+        $this->smarty_options   = new Repository($smarty_options);
         $this->template_options = new Repository($template_options);
 
-        $this->headers = new Headers($this->logger);
-
-        $this->breadcrumbs = new Breadcrumbs($this->logger);
-
+        $this->headers      = new Headers($this->logger);
+        $this->breadcrumbs  = new Breadcrumbs($this->logger);
         $this->hooks_engine = new Hooks($this->template_options, $this->logger);
+
+        foreach (self::$default_options['plugins'] as $plugin) {
+            $this->registerPlugin($plugin[0], $plugin[1], $plugin[2], $plugin[3] ?? false, $plugin[4] ?? null);
+        }
+
+        foreach (self::$default_options['classes'] as $name => $impl) {
+            $this->registerClass($name, $impl);
+        }
+
+        foreach (self::$default_options['hooks'] as $hook_name => $callbacks) {
+            foreach ($callbacks as $callback) {
+                $this->hooks_engine->registerHook($hook_name, $callback);
+            }
+        }
 
         if (\array_key_exists('file', $template_options)) {
             $this->setTemplate($template_options['file']);
+        }
+
+        if (\array_key_exists('source', $template_options)) {
+            $this->setTemplate($template_options['source']);
         }
 
         if (\array_key_exists('source', $template_options)) {
@@ -225,7 +416,10 @@ class Template implements TemplateInterface
             $template_options['cleanup_extra_eol'] ?? true
         );
 
-        //@todo: может быть template_vars тоже Repository ?
+        // assigned_template_vars — намеренно plain-array, а не Repository:
+        // это плоский баг данных для Smarty (запись assign() + foreach в renderTemplate),
+        // без слияния дефолтов, ключи которого нужны только внутри Template.
+        // Repository оправдан для конфигурационных корзин (smarty_options/template_options).
 
         $this->assigned_json = new Result();
     }
@@ -238,7 +432,6 @@ class Template implements TemplateInterface
      */
     public function setTemplateDir(string $dir):Template
     {
-        $this->smarty_options->setTemplateDir = $dir;
         $this->smarty_options->set('setTemplateDir', $dir);
         return $this;
     }
@@ -251,7 +444,6 @@ class Template implements TemplateInterface
      */
     public function setCompileDir(string $dir):Template
     {
-        $this->smarty_options->setCompileDir = $dir;
         $this->smarty_options->set('setCompileDir', $dir);
         return $this;
     }
@@ -264,7 +456,6 @@ class Template implements TemplateInterface
      */
     public function setForceCompile(bool $force_compile):Template
     {
-        $this->smarty_options->setForceCompile = $force_compile;
         $this->smarty_options->set('setForceCompile', $force_compile);
 
         return $this;
@@ -276,7 +467,6 @@ class Template implements TemplateInterface
      */
     public function setConfigDir(string $config_dir):Template
     {
-        $this->smarty_options->setConfigDir = $config_dir;
         $this->smarty_options->set('setConfigDir', $config_dir);
         return $this;
     }
@@ -364,13 +554,7 @@ class Template implements TemplateInterface
      */
     public function setEngineOption($key_name, $key_value = null):Template
     {
-        if (is_array($key_value)) {
-            foreach ($key_name as $ki => $kv) {
-                $this->setEngineOption($ki, $kv);
-            }
-        } else {
-            $this->template_options[$key_name] = $key_value;
-        }
+        $this->template_options[$key_name] = $key_value;
 
         return $this;
     }
@@ -497,12 +681,12 @@ class Template implements TemplateInterface
             $_code = 200;
         }
 
-        if ( \preg_match('/^http[s]?:\/\//', $_uri) !== false ) {
+        if ( \preg_match('/^https?:\/\//i', $_uri) === 1 ) {
             $location = $_uri;
         } else {
-            $scheme = Helper::is_ssl() ? "https://" : "http://";
-            $scheme = \str_replace('://', '', $scheme);
-            $location = "{$scheme}://{$_SERVER['HTTP_HOST']}{$_uri}";
+            $scheme = Helper::is_ssl() ? "https" : "http";
+            $host = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '';
+            $location = "{$scheme}://{$host}{$_uri}";
         }
 
         $this->headers->add(Headers::LOCATION, $location, $replace_headers, $_code);
@@ -564,7 +748,7 @@ class Template implements TemplateInterface
     {
         $this->assigned_template_vars = [];
         $this->assigned_result = null;
-        $this->assigned_json = null;
+        $this->assigned_json = new Result();
         $this->assigned_raw_content = '';
 
         if (!$clear_cache) {
@@ -664,11 +848,20 @@ class Template implements TemplateInterface
     /**
      * Устанавливает тип рендера
      *
-     * @param string $type
+     * @param ContentType|string $type
      * @return void
+     * @throws \InvalidArgumentException
      */
-    public function setRenderType(string $type): void
+    public function setRenderType(ContentType|string $type): void
     {
+        if (\is_string($type)) {
+            $type = ContentType::tryFrom($type);
+        }
+
+        if ($type === null) {
+            throw new \InvalidArgumentException("Unknown render type");
+        }
+
         $this->render_type = $type;
     }
 
@@ -677,86 +870,58 @@ class Template implements TemplateInterface
      * Он всегда вызывается как `echo $template->render()`, но если вернет null - ничего не напечатает
      * После него всегда вызывается makeRedirect
      *
-     * Хедеры мы отправляем всегда кроме случая редиректа
+     * Хедеры НЕ отправляются по умолчанию: это делает только явный вызов `render(send_headers: true)`
+     * (либо ручной `$template->headers->send()`).
      *
      * Для ситуации 404 мы рендерим ответ и устанавливаем хедер
      *
      * Для 404 в случае API возвращается всегда 200, но об отсутствии метода отвечает уже обработчик API
      *
-     * @param bool $need_send_headers
+     * @param bool $send_headers
      * @param bool $clean
      * @return string|null
      * @throws SmartyException
      */
-    public function render(bool $need_send_headers = true, bool $clean = false): ?string
+    public function render(bool $send_headers = false, bool $clean = false): ?string
     {
         $content = '';
         $need_render = false;
 
         switch ($this->render_type) {
-            case self::CONTENT_TYPE_REDIRECT: {
+            case ContentType::REDIRECT: {
                 $this->headers->headers_present = false;
                 break;
             }
-            case self::CONTENT_TYPE_JSON: {
+            case ContentType::JSON: {
                 $content = json_encode($this->assigned_json->toArray(), TemplateInterface::JSON_ENCODE_FLAGS);
-                $this->addHeader(Headers::CONTENT_TYPE,'application/json; charset=utf-8');
                 break;
             }
-            case self::CONTENT_TYPE_JSON_RAW: {
+            case ContentType::JSON_RAW: {
                 $content = json_encode($this->assigned_json->getData(), TemplateInterface::JSON_ENCODE_FLAGS);
-                $this->addHeader(Headers::CONTENT_TYPE,'application/json; charset=utf-8');
                 break;
             }
-            case self::CONTENT_TYPE_RESULT: {
+            case ContentType::RESULT: {
                 $content = json_encode($this->assigned_result, TemplateInterface::JSON_ENCODE_FLAGS);
-                $this->addHeader(Headers::CONTENT_TYPE,'application/json; charset=utf-8');
                 break;
             }
-            case self::CONTENT_TYPE_RAW: {
+            case ContentType::RAW:
+            case ContentType::RAW_HTML:
+            case ContentType::JS_RAW: {
                 $content = $this->assigned_raw_content;
-                break;
-            }
-            case self::CONTENT_TYPE_RAW_HTML: {
-                $content = $this->assigned_raw_content;
-                $this->addHeader(Headers::CONTENT_TYPE, 'text/html; charset=utf-8');
-                break;
-            }
-            case self::CONTENT_TYPE_JS: {
-                $need_render = true;
-                $this->addHeader(Headers::CONTENT_TYPE, 'text/javascript;charset=utf-8');
-                break;
-            }
-            case self::CONTENT_TYPE_JS_RAW: {
-                $content = $this->assigned_raw_content;
-                $this->addHeader(Headers::CONTENT_TYPE, 'text/javascript;charset=utf-8');
-                break;
-            }
-            case self::CONTENT_TYPE_XML:
-            case self::CONTENT_TYPE_RSS: {
-                $this->addHeader(Headers::CONTENT_TYPE, 'Content-type: application/xml');
-                $need_render = true;
-                break;
-            }
-            case self::CONTENT_TYPE_HTML: {
-                $this->addHeader(Headers::CONTENT_TYPE, 'text/html; charset=utf-8');
-                $need_render = true;
-                break;
-            }
-            case self::CONTENT_TYPE_404: {
-                $this->addHeader(Headers::_, code: 404);
-                $need_render = true;
-                break;
-            }
-            case self::CONTENT_TYPE_500: {
-                $this->addHeader(Headers::_, code: 500);
-                $need_render = true;
                 break;
             }
             default: {
-
+                $need_render = true;
             }
         } // switch
+
+        if ($this->render_type !== ContentType::REDIRECT) {
+            if (($code = $this->render_type->statusCode()) !== null) {
+                $this->addHeader(Headers::_, code: $code);
+            } elseif (($header = $this->render_type->contentTypeHeader()) !== null) {
+                $this->addHeader(Headers::CONTENT_TYPE, $header);
+            }
+        }
 
         // Судя по названию, должно отключать "именованные параметры" у хуков. Но в имеющихся тестах я не вижу никакой
         // зависимости от этого параметра. Он что включен, что выключен - поведение не меняется.
@@ -769,7 +934,7 @@ class Template implements TemplateInterface
             $content = $this->renderTemplate();
         }
 
-        if ($this->headers->headers_present && $need_send_headers) {
+        if ($this->headers->headers_present && $send_headers) {
             $this->headers->send();
         }
 
@@ -828,7 +993,7 @@ class Template implements TemplateInterface
      * @param int $code
      * @return $this
      */
-    public function setRedirect(string $uri = '/', int $code = 200):Template
+    public function setRedirect(string $uri = '/', int $code = 301):Template
     {
         $this->redirect_options = [
             '_'     =>  true,

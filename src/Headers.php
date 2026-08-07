@@ -1358,14 +1358,15 @@ final class Headers implements HeadersInterface
      */
     public function add(string $name = '', string $content = '', bool $replace = true, int $code = 0):Headers
     {
-        if (empty($name) && empty($content)) {
+        if (empty($name) && empty($content) && $code <= 0) {
             return $this;
         }
 
         // Для HTTP-статусов (когда name пустой)
         if (empty($name) && $code > 0) {
             $protocol = $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0';
-            $value = $protocol . ' ' . $code . ' ' . $content;
+            $reason = $content !== '' ? $content : (self::HTTP_CODES[ $code ] ?? '');
+            $value = $protocol . ' ' . $code . ' ' . $reason;
         } else {
             $value = empty($name) ? $content : "{$name}: {$content}";
         }

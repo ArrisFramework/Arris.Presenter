@@ -11,7 +11,7 @@ interface HooksInterface
 
     public function disableNamedParams(bool $disable = false):Hooks;
 
-    public function registerHook($hook_name, $hook_callback, int $priority = null):Hooks;
+    public function registerHook($hook_name, $hook_callback, ?int $priority = null):Hooks;
 
     public function registerHooks(array $hooks = []):Hooks;
 

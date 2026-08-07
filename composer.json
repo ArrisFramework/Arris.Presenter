@@ -10,11 +10,11 @@
         }
     ],
     "require": {
-        "php": "^7.4 || 8.*",
+        "php": "^8.2",
         "ext-json": "*",
         "ext-mbstring": "*",
         "smarty/smarty": "v4.5.3",
-        "karelwintersky/arris.entity": "^1",
+        "karelwintersky/arris.entity": "^2",
         "psr/log": "*"
 
     },
