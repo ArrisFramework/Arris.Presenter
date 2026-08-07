@@ -8,9 +8,9 @@ interface FlashMessagesInterface
 
     public static function getInstance():FlashMessages;
 
-    public function addMessage($key, $message): void;
+    public function addMessage($key, $message = null): void;
 
-    public function addMessageNow($key, $message): void;
+    public function addMessageNow($key, $message = null): void;
 
     public function getMessages(): array;
 

@@ -11,6 +11,11 @@ use \RuntimeException;
  */
 class FlashMessages implements FlashMessagesInterface
 {
+    /**
+     * Ключ по умолчанию для сообщений, если он не указан явно
+     */
+    public const DEFAULT_KEY = 'flash';
+
     private static ?FlashMessages $instance = null;
 
     /**
@@ -26,13 +31,6 @@ class FlashMessages implements FlashMessagesInterface
      * @var string[]
      */
     protected array $forNow = [];
-
-    /**
-     * Messages for next request
-     *
-     * @var string[]
-     */
-    protected array $forNext = [];
 
     /**
      * Message storage
@@ -54,7 +52,7 @@ class FlashMessages implements FlashMessagesInterface
     public static function getInstance():FlashMessages
     {
         if (!self::$instance) {
-            self::$instance = new static($options);
+            self::$instance = new static();
         }
 
         return self::$instance;
@@ -95,11 +93,19 @@ class FlashMessages implements FlashMessagesInterface
     /**
      * Add flash message for the next request
      *
+     * Если передан один параметр - он трактуется как сообщение в дефолтный ключ
+     * FlashMessages::DEFAULT_KEY ('flash').
+     *
      * @param string $key The key to store the message under
      * @param mixed  $message Message to show on next request
      */
-    public function addMessage($key, $message): void
+    public function addMessage($key, $message = null): void
     {
+        if (\is_null($message)) {
+            $message = $key;
+            $key = self::DEFAULT_KEY;
+        }
+
         // Create Array for this key
         if (!isset($this->storage[$this->storageKey][$key])) {
             $this->storage[$this->storageKey][$key] = [];
@@ -112,11 +118,19 @@ class FlashMessages implements FlashMessagesInterface
     /**
      * Add flash message for current request
      *
+     * Если передан один параметр - он трактуется как сообщение в дефолтный ключ
+     * FlashMessages::DEFAULT_KEY ('flash').
+     *
      * @param string $key The key to store the message under
      * @param mixed  $message Message to show for the current request
      */
-    public function addMessageNow($key, $message): void
+    public function addMessageNow($key, $message = null): void
     {
+        if (\is_null($message)) {
+            $message = $key;
+            $key = self::DEFAULT_KEY;
+        }
+
         // Create Array for this key
         if (!isset($this->forNow[$key])) {
             $this->forNow[$key] = [];
