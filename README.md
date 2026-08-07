@@ -144,3 +144,104 @@ P.S. На самом деле это решается прямым указан�
 {hook run='pre_content'}
 ```
 отрабатывают корректно оба.
+
+### Комментарии Smarty и пробелы (`cleanup_extra_eol`)
+
+Smarty при удалении комментария `{* ... *}` вырезает сам комментарий и один перевод
+строки после него, но **пробелы перед ним остаются** и прилипают к началу следующей
+строки вывода. Нативной опции «игнорировать строки из одних пробелов» у Smarty нет.
+
+`cleanup_extra_eol` (по умолчанию `true`) - пост-обработка результата рендера
+regex'ом `/^\h*\v+/m`, удаляющим строки, состоящие целиком из пробелов. Поэтому он
+чинит только ту утечку, которая попадает в **пустую строку**; если комментарий идёт
+сразу за выводимым тегом и после него нет перевода строки, пробелы прилипают
+к строке с содержимым и regex их не видит.
+
+Надёжный паттерн шаблона - каждый комментарий на своей строке обязательно
+завершать пустой строкой:
+
+```html
+    {$meta}
+
+    {* любой комментарий на своей строке *}
+
+</head>
+```
+
+Альтернатива - комментарий от колонки 0 (без отступа): тогда прилипать нечему.
+
+## FlashMessages
+
+Класс реализует паттерн flash-сообщений (наследие Slim Flash) с **двумя очередями**:
+
+- `addMessage($key, $message)` - сообщение появится в **следующем** запросе (хранится в сессии);
+- `addMessageNow($key, $message)` - сообщение видно **в текущем** запросе (в памяти).
+
+Получить: `getMessages()` (все), `getMessage($key, $default)` (все по ключу),
+`getFirstMessage($key, $default)` (первое по ключу), `hasMessage($key)`.
+Очистка: `clearMessages()` / `clearMessage($key)`.
+
+Если ключ не нужен (одна очередь) - ключ можно опустить: один параметр трактуется как
+сообщение в дефолтный ключ `FlashMessages::DEFAULT_KEY` (`'flash'`):
+
+```php
+$flash = FlashMessages::getInstance();   // синглтон; требует активной $_SESSION
+
+$flash->addMessage(['type' => 'success', 'text' => 'Сохранено']);   // === addMessage('flash', ...)
+$flash->addMessageNow('Это видно сразу');
+
+$messages = $flash->getMessage('flash', []);   // что показать в шаблоне
+```
+
+Ключ (`'flash'`, `'errors'`, `'success'`, ...) позволяет в одной сессии держать
+несколько **независимых** очередей сообщений. Если очередь всегда одна - везде
+работает единый `DEFAULT_KEY`.
+
+Синглтон `getInstance()` работает только с `$_SESSION` (иначе `RuntimeException`).
+Альтернатива - своё хранилище: `new FlashMessages($storage)`, где `$storage` -
+массив или `\ArrayAccess` (по ссылке).
+
+## Meta
+
+Мета-данные веб-страницы (стандартные теги, OpenGraph, Twitter Cards). Экземпляр
+`Meta` создаётся презентером eagerly и доступен как `$template->meta` (сбрасывается
+в `fork()`):
+
+```php
+$template->meta
+    ->setTitle('Заголовок страницы')
+    ->setDescription('Краткое описание')
+    ->setCanonical('https://example.com/page')
+    ->setOgType('article')
+    ->setOgImage('https://example.com/img.png')
+    ->addCustom('google-site-verification', 'abc123');
+
+$html = $template->meta->render();            // готовые <title>/<meta>/<link canonical>
+$data = $template->meta->toArray();           // структурированный массив
+$template->assign('meta', $template->meta->toArray());
+```
+
+Стандартные: `title, description, keywords, robots, canonical, author`.
+OpenGraph: `og:type` (по умолчанию `website`), `og:title`, `og:description`,
+`og:image`, `og:url`, `og:site_name`, `og:locale` (`ru_RU`),
+`og:locale:alternate` (несколько - `addOgLocaleAlternate()`).
+Twitter Cards: `twitter:card` (`summary`), `twitter:image`.
+Произвольные теги - `addCustom($name, $content)`.
+
+Fallback, если OG не задан явно: `og:title <- title`, `og:description <- description`,
+`og:url <- canonical`; `twitter:title/description` берут те же значения,
+`twitter:image <- og:image`.
+
+`render()` возвращает строку `<title>` + `<meta>` + `<link rel="canonical">`,
+экранируя значения через `htmlspecialchars(ENT_QUOTES)`. Теги выводятся по одному
+на строку; первая строка без отступа, каждая последующая получает префикс из
+`$indent` символов `$char` (`render(int $indent = 4, string $char = ' ')`).
+Так блок выравнивается по отступу шаблона:
+
+```php
+{$meta}   // отступ шаблона в 4 пробела -> render() по умолчанию выровняет все строки
+{$template->meta->render(8, ' ')}   // свой отступ
+{$template->meta->render(0)}        // без отступа
+```
+
+Очистка - `clear()`. Реализует `MetaInterface`, доступен и автономно: `new Meta()`.
