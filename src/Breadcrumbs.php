@@ -69,6 +69,10 @@ class Breadcrumbs implements BreadcrumbsInterface
      */
     public function implodeCrumbs(string $mask = '<a href="%s">%s</a>', bool $use_crlf = false): string
     {
+        if ($this->crumbs->isEmpty()) {
+            return '';
+        }
+
         $crlf = $use_crlf ? "\n" : "";
         $b = clone $this->crumbs;
         $b->reverse();
@@ -114,6 +118,10 @@ class Breadcrumbs implements BreadcrumbsInterface
      */
     public function crumbsToTitles():array
     {
+        if ($this->crumbs->isEmpty()) {
+            return [];
+        }
+
         $b = clone $this->crumbs;
         $this->titles->clear();
 

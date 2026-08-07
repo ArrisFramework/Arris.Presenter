@@ -112,6 +112,10 @@ class Stack
 
     public function reverse()
     {
+        if ($this->isEmpty()) {
+            return $this;
+        }
+
         $data = [];
         do {
             $data[] = $this->pop();
